@@ -10,6 +10,8 @@ env:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
 
         steps:
             - uses: actions/checkout@v6
@@ -42,3 +44,12 @@ jobs:
 
             - name: Push to NuGet
               run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+            - name: Upload packages to GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: |
+                      ./packages/*.nupkg
+                      ./packages/*.snupkg
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
