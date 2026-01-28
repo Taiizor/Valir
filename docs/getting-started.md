@@ -4,7 +4,7 @@ This guide will help you set up Valir in your .NET application.
 
 ## Prerequisites
 
-- .NET 9.0 SDK or later
+- .NET 10.0 SDK or later
 - Redis 6.0+ (for job queue)
 - Optional: Kafka, RabbitMQ, or Azure Service Bus (for event bus)
 
