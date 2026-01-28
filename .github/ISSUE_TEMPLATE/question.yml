@@ -1,0 +1,78 @@
+name: ❓ Question / Support
+description: Ask a question or get help with Valir
+title: "[QUESTION]: "
+labels: ["question", "needs-triage"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Have a question about Valir? We're here to help!
+
+              **Before asking:**
+              - Check the [documentation](https://github.com/Taiizor/Valir/tree/develop/docs)
+              - Search [existing issues](https://github.com/Taiizor/Valir/issues)
+
+    - type: dropdown
+      id: question-type
+      attributes:
+          label: Question Type
+          options:
+              - How do I...? (Usage question)
+              - Why does...? (Understanding behavior)
+              - What is the best practice for...?
+              - Architecture / Design question
+              - Performance question
+              - Migration / Upgrade question
+              - Other
+      validations:
+          required: true
+
+    - type: dropdown
+      id: package
+      attributes:
+          label: Related Package(s)
+          options:
+              - Valir.Abstractions
+              - Valir.Core
+              - Valir.Redis
+              - Valir.AspNet
+              - Valir.EntityFrameworkCore
+              - Valir.Brokers.Kafka
+              - Valir.Brokers.RabbitMQ
+              - Valir.Brokers.AzureSB
+              - General / Multiple
+      validations:
+          required: true
+
+    - type: textarea
+      id: question
+      attributes:
+          label: Your Question
+          description: Please describe your question in detail
+          placeholder: "I'm trying to understand how to..."
+      validations:
+          required: true
+
+    - type: textarea
+      id: context
+      attributes:
+          label: Context / What You've Tried
+          description: What have you already tried? What documentation have you read?
+          placeholder: |
+              I've read the getting-started guide and tried...
+              The documentation says X but I'm confused about...
+
+    - type: textarea
+      id: code
+      attributes:
+          label: Code (Optional)
+          description: If relevant, share the code you're working with
+          render: csharp
+
+    - type: checkboxes
+      id: checklist
+      attributes:
+          label: Pre-submission Checklist
+          options:
+              - label: I have searched existing issues and documentation
+                required: true

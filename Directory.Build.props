@@ -1,0 +1,51 @@
+<Project>
+    <PropertyGroup>
+        <!-- Versioning -->
+        <VersionPrefix>0.1.0</VersionPrefix>
+        <VersionSuffix></VersionSuffix>
+
+        <!-- Language Features -->
+        <LangVersion>preview</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+        <!-- Package Metadata -->
+        <Authors>Taiizor</Authors>
+        <Company>Taiizor</Company>
+        <Product>Valir</Product>
+        <Copyright>Copyright © 2026 Taiizor. All rights reserved.</Copyright>
+
+        <!-- NuGet Package -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Taiizor/Valir</PackageProjectUrl>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <RepositoryUrl>https://github.com/Taiizor/Valir</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>background-jobs;distributed;redis;queue;event-bus;kafka;rabbitmq;azure-service-bus;dotnet;worker;job-scheduler;message-queue</PackageTags>
+        <PackageReleaseNotes>https://github.com/Taiizor/Valir/releases</PackageReleaseNotes>
+
+        <!-- Source Link -->
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <!-- Deterministic Builds -->
+        <Deterministic>true</Deterministic>
+        <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <!-- Package assets -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)NUGET_README.md" Pack="true" PackagePath="README.md" Condition="Exists('$(MSBuildThisFileDirectory)NUGET_README.md')" />
+        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+    </ItemGroup>
+
+    <!-- Source Link -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All"/>
+    </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Valir.Core</PackageId>
+        <Description>Core runtime for Valir distributed job queue. Contains WorkerRuntime, RetryPolicy, JobStateMachine, and ValirOptions configuration.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Valir.Abstractions\Valir.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

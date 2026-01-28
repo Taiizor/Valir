@@ -1,0 +1,120 @@
+services:
+    redis:
+        image: redis:7-alpine
+        container_name: valir-redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis-data:/data
+        command: redis-server --appendonly yes
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis-commander:
+        image: rediscommander/redis-commander:latest
+        container_name: valir-redis-commander
+        environment:
+            - REDIS_HOSTS=local:redis:6379
+        ports:
+            - "8081:8081"
+        depends_on:
+            redis:
+                condition: service_healthy
+
+    rabbitmq:
+        image: rabbitmq:4-management-alpine
+        container_name: valir-rabbitmq
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        environment:
+            RABBITMQ_DEFAULT_USER: guest
+            RABBITMQ_DEFAULT_PASS: guest
+        volumes:
+            - rabbitmq-data:/var/lib/rabbitmq
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    kafka:
+        image: confluentinc/cp-kafka:7.6.0
+        container_name: valir-kafka
+        ports:
+            - "9092:9092"
+        environment:
+            KAFKA_NODE_ID: 1
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+            KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+            KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+            KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+            KAFKA_PROCESS_ROLES: broker,controller
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+            KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+            CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+        volumes:
+            - kafka-data:/var/lib/kafka/data
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "kafka-broker-api-versions",
+                    "--bootstrap-server",
+                    "localhost:9092",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    kafka-ui:
+        image: provectuslabs/kafka-ui:latest
+        container_name: valir-kafka-ui
+        ports:
+            - "8082:8080"
+        environment:
+            KAFKA_CLUSTERS_0_NAME: local
+            KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+        depends_on:
+            kafka:
+                condition: service_healthy
+
+    postgres:
+        image: postgres:16-alpine
+        container_name: valir-postgres
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_USER: valir
+            POSTGRES_PASSWORD: valir
+            POSTGRES_DB: valir
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U valir"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    jaeger:
+        image: jaegertracing/all-in-one:1.54
+        container_name: valir-jaeger
+        ports:
+            - "16686:16686"
+            - "4317:4317"
+            - "4318:4318"
+        environment:
+            COLLECTOR_OTLP_ENABLED: true
+
+volumes:
+    redis-data:
+    rabbitmq-data:
+    kafka-data:
+    postgres-data:

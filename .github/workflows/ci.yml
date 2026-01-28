@@ -1,0 +1,103 @@
+name: Valir CI
+
+on:
+    push:
+        branches: [develop]
+    pull_request:
+        branches: [develop]
+
+env:
+    DOTNET_VERSION: "10.0.x"
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Cache NuGet packages
+              uses: actions/cache@v5
+              with:
+                  path: ~/.nuget/packages
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+                  restore-keys: |
+                      ${{ runner.os }}-nuget-
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build
+              run: dotnet build --no-restore --configuration Release
+
+            - name: Run unit tests
+              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName!~Integration" --verbosity normal
+
+    integration-tests:
+        runs-on: ubuntu-latest
+        needs: build
+
+        services:
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build
+              run: dotnet build --no-restore --configuration Release
+
+            - name: Run integration tests
+              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName~Integration" --verbosity normal
+              env:
+                  REDIS_CONNECTION: localhost:6379
+
+    package:
+        runs-on: ubuntu-latest
+        needs: [build, integration-tests]
+        if: github.ref == 'refs/heads/develop'
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Pack NuGet packages
+              run: |
+                  dotnet pack src/Valir.Abstractions -c Release -o ./packages
+                  dotnet pack src/Valir.Core -c Release -o ./packages
+                  dotnet pack src/Valir.Redis -c Release -o ./packages
+                  dotnet pack src/Valir.AspNet -c Release -o ./packages
+                  dotnet pack src/Valir.EntityFrameworkCore -c Release -o ./packages
+                  dotnet pack src/Valir.Brokers.Kafka -c Release -o ./packages
+                  dotnet pack src/Valir.Brokers.RabbitMQ -c Release -o ./packages
+                  dotnet pack src/Valir.Brokers.AzureSB -c Release -o ./packages
+
+            - name: Upload packages artifact
+              uses: actions/upload-artifact@v6
+              with:
+                  name: nuget-packages
+                  path: ./packages/*.nupkg

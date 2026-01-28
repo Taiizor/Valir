@@ -1,0 +1,163 @@
+name-template: "Valir v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+
+categories:
+    - title: "💥 Breaking Changes"
+      labels:
+          - "breaking-change"
+    - title: "🚀 New Features"
+      labels:
+          - "enhancement"
+          - "feature"
+    - title: "🐛 Bug Fixes"
+      labels:
+          - "bug"
+          - "fix"
+    - title: "🔒 Security"
+      labels:
+          - "security"
+    - title: "⚡ Performance"
+      labels:
+          - "performance"
+    - title: "📦 Dependencies"
+      labels:
+          - "dependencies"
+          - "nuget"
+    - title: "📝 Documentation"
+      labels:
+          - "documentation"
+    - title: "🏗️ Infrastructure"
+      labels:
+          - "ci"
+          - "github-actions"
+    - title: "🧪 Tests"
+      labels:
+          - "tests"
+    - title: "🧹 Maintenance"
+      collapse-after: 5
+      labels:
+          - "chore"
+          - "refactor"
+          - "*" # Catch-all for unlabeled PRs
+
+exclude-labels:
+    - "skip-changelog"
+    - "duplicate"
+    - "invalid"
+    - "wontfix"
+    - "stale"
+
+exclude-contributors:
+    - "dependabot"
+    - "dependabot[bot]"
+
+autolabeler:
+    - label: "documentation"
+      files:
+          - "*.md"
+          - "docs/**"
+    - label: "tests"
+      files:
+          - "tests/**"
+    - label: "ci"
+      files:
+          - ".github/**"
+    - label: "core"
+      files:
+          - "src/Valir.Abstractions/**"
+          - "src/Valir.Core/**"
+    - label: "redis"
+      files:
+          - "src/Valir.Redis/**"
+    - label: "brokers"
+      files:
+          - "src/Valir.Brokers.*/**"
+    - label: "aspnet"
+      files:
+          - "src/Valir.AspNet/**"
+    - label: "efcore"
+      files:
+          - "src/Valir.EntityFrameworkCore/**"
+    - label: "samples"
+      files:
+          - "samples/**"
+
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: '\<*_&'
+
+version-resolver:
+    major:
+        labels:
+            - "breaking-change"
+    minor:
+        labels:
+            - "enhancement"
+            - "feature"
+    patch:
+        labels:
+            - "bug"
+            - "fix"
+            - "dependencies"
+            - "documentation"
+    default: patch
+
+template: |
+    ## 🎉 Valir $RESOLVED_VERSION
+
+    A modular .NET distributed framework for background jobs and event-driven architectures.
+
+    ---
+
+    ## 📦 Installation
+
+    ```bash
+    dotnet add package Valir.Redis --version $RESOLVED_VERSION
+    dotnet add package Valir.AspNet --version $RESOLVED_VERSION
+    ```
+
+    <details>
+    <summary>📦 All packages</summary>
+
+    ```bash
+    # Core
+    dotnet add package Valir.Abstractions --version $RESOLVED_VERSION
+    dotnet add package Valir.Core --version $RESOLVED_VERSION
+    dotnet add package Valir.Redis --version $RESOLVED_VERSION
+
+    # ASP.NET Core
+    dotnet add package Valir.AspNet --version $RESOLVED_VERSION
+    dotnet add package Valir.EntityFrameworkCore --version $RESOLVED_VERSION
+
+    # Event Bus Adapters
+    dotnet add package Valir.Brokers.Kafka --version $RESOLVED_VERSION
+    dotnet add package Valir.Brokers.RabbitMQ --version $RESOLVED_VERSION
+    dotnet add package Valir.Brokers.AzureSB --version $RESOLVED_VERSION
+    ```
+
+    </details>
+
+    ---
+
+    ## 📋 What's Changed
+
+    $CHANGES
+
+    ---
+
+    ## 👥 Contributors
+
+    Thanks to all contributors who made this release possible!
+
+    $CONTRIBUTORS
+
+    ---
+
+    ## 🔗 Links
+
+    - 📖 [Documentation](https://github.com/Taiizor/Valir/tree/develop/docs)
+    - 🐛 [Report Issues](https://github.com/Taiizor/Valir/issues/new/choose)
+    - 💬 [Discussions](https://github.com/Taiizor/Valir/discussions)
+
+    ---
+
+    **Full Changelog**: https://github.com/Taiizor/Valir/commits/v$RESOLVED_VERSION

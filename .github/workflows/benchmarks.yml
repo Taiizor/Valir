@@ -1,0 +1,40 @@
+name: Benchmarks
+
+on:
+    push:
+        branches: [develop]
+        paths:
+            - "src/**"
+            - "tests/Valir.Benchmarks/**"
+    workflow_dispatch:
+
+env:
+    DOTNET_VERSION: "10.0.x"
+
+jobs:
+    benchmark:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build Release
+              run: dotnet build --configuration Release --no-restore
+
+            - name: Run benchmarks
+              run: dotnet run --project tests/Valir.Benchmarks --configuration Release -- --filter "*" --exporters json
+
+            - name: Upload benchmark results
+              uses: actions/upload-artifact@v6
+              with:
+                  name: benchmark-results
+                  path: BenchmarkDotNet.Artifacts/
+                  retention-days: 30

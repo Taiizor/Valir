@@ -1,0 +1,44 @@
+name: Release
+
+on:
+    release:
+        types: [published]
+
+env:
+    DOTNET_VERSION: "10.0.x"
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Restore dependencies
+              run: dotnet restore
+
+            - name: Build Release
+              run: dotnet build --configuration Release
+
+            - name: Run tests
+              run: dotnet test --configuration Release --filter "FullyQualifiedName!~Integration"
+
+            - name: Pack with version
+              run: |
+                  VERSION=${GITHUB_REF#refs/tags/v}
+                  dotnet pack src/Valir.Abstractions -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.Core -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.Redis -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.AspNet -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.EntityFrameworkCore -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.Brokers.Kafka -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.Brokers.RabbitMQ -c Release -o ./packages /p:Version=$VERSION
+                  dotnet pack src/Valir.Brokers.AzureSB -c Release -o ./packages /p:Version=$VERSION
+
+            - name: Push to NuGet
+              run: dotnet nuget push ./packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

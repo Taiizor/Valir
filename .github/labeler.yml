@@ -1,0 +1,48 @@
+# Configuration for PR Labeler
+
+core:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.Abstractions/**
+                - src/Valir.Core/**
+
+redis:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.Redis/**
+
+brokers:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.Brokers.*/**
+
+aspnet:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.AspNet/**
+
+efcore:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.EntityFrameworkCore/**
+
+documentation:
+    - changed-files:
+          - any-glob-to-any-file:
+                - "*.md"
+                - docs/**
+
+tests:
+    - changed-files:
+          - any-glob-to-any-file:
+                - tests/**
+
+samples:
+    - changed-files:
+          - any-glob-to-any-file:
+                - samples/**
+
+ci:
+    - changed-files:
+          - any-glob-to-any-file:
+                - .github/**

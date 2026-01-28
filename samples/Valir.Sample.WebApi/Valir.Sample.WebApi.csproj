@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+        <PackageReference Include="Swashbuckle.AspNetCore" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Valir.AspNet\Valir.AspNet.csproj" />
+        <ProjectReference Include="..\..\src\Valir.EntityFrameworkCore\Valir.EntityFrameworkCore.csproj" />
+        <ProjectReference Include="..\..\src\Valir.Brokers.RabbitMQ\Valir.Brokers.RabbitMQ.csproj" />
+        <ProjectReference Include="..\..\src\Valir.Brokers.Kafka\Valir.Brokers.Kafka.csproj" />
+    </ItemGroup>
+
+</Project>

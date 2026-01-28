@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Valir.Brokers.RabbitMQ</PackageId>
+        <Description>RabbitMQ adapter for Valir event bus. Provides IEventBroker implementation with topic exchanges, durable queues, and manual acknowledgments for reliable messaging.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Valir.Abstractions\Valir.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="RabbitMQ.Client" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,145 @@
+# Labels configuration for the repository
+# These labels will be auto-created/synced by the sync-labels workflow
+
+# Issue Types
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: enhancement
+  color: "a2eeef"
+  description: New feature or request
+
+- name: question
+  color: "d876e3"
+  description: Further information is requested
+
+- name: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation
+
+# Triage
+- name: needs-triage
+  color: "fbca04"
+  description: Needs review and categorization
+
+- name: confirmed
+  color: "0e8a16"
+  description: Issue has been confirmed/reproduced
+
+- name: wontfix
+  color: "ffffff"
+  description: This will not be worked on
+
+- name: duplicate
+  color: "cfd3d7"
+  description: This issue or pull request already exists
+
+- name: invalid
+  color: "e4e669"
+  description: This doesn't seem right
+
+# Priority
+- name: "priority: critical"
+  color: "b60205"
+  description: Must be fixed ASAP
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: High priority issue
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: Medium priority issue
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: Low priority issue
+
+# Packages
+- name: core
+  color: "5319e7"
+  description: Valir.Abstractions or Valir.Core
+
+- name: redis
+  color: "dc143c"
+  description: Valir.Redis package
+
+- name: brokers
+  color: "006b75"
+  description: Event bus brokers (Kafka, RabbitMQ, Azure SB)
+
+- name: aspnet
+  color: "512bd4"
+  description: Valir.AspNet package
+
+- name: efcore
+  color: "1d76db"
+  description: Valir.EntityFrameworkCore package
+
+# Areas
+- name: tests
+  color: "bfd4f2"
+  description: Test files and testing
+
+- name: samples
+  color: "c5def5"
+  description: Sample projects
+
+- name: ci
+  color: "ededed"
+  description: CI/CD and GitHub Actions
+
+# PR Status
+- name: "pr: ready for review"
+  color: "0e8a16"
+  description: Ready for code review
+
+- name: "pr: work in progress"
+  color: "fbca04"
+  description: Work is still in progress
+
+- name: "pr: needs changes"
+  color: "e99695"
+  description: Changes requested in review
+
+# Special
+- name: "good first issue"
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: "help wanted"
+  color: "008672"
+  description: Extra attention is needed
+
+- name: dependencies
+  color: "0366d6"
+  description: Dependency updates
+
+- name: nuget
+  color: "004880"
+  description: NuGet package related
+
+- name: github-actions
+  color: "000000"
+  description: GitHub Actions related
+
+- name: security
+  color: "ee0701"
+  description: Security related issue
+
+- name: performance
+  color: "fef2c0"
+  description: Performance related
+
+- name: breaking-change
+  color: "b60205"
+  description: Breaking change to public API
+
+- name: stale
+  color: "ffffff"
+  description: No recent activity
+
+- name: pinned
+  color: "006b75"
+  description: Pinned issue, won't be auto-closed

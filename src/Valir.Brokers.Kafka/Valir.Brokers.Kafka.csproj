@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Valir.Brokers.Kafka</PackageId>
+        <Description>Apache Kafka adapter for Valir event bus. Provides IEventBroker implementation with at-least-once delivery, consumer groups, and SASL authentication support.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Valir.Abstractions\Valir.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Confluent.Kafka" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    </ItemGroup>
+
+</Project>

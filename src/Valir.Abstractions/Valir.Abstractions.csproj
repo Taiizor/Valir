@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Valir.Abstractions</PackageId>
+        <Description>Core abstractions for Valir distributed job queue framework. Contains interfaces for IJobQueue, IEventBroker, IDistributedLock, and IRateLimiter.</Description>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Valir.Redis</PackageId>
+        <Description>Redis implementation for Valir job queue. Provides RedisJobQueue, RedisDistributedLock, and RedisRateLimiter with atomic Lua scripts for reliable distributed operations.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Valir.Abstractions\Valir.Abstractions.csproj" />
+        <ProjectReference Include="..\Valir.Core\Valir.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="StackExchange.Redis" />
+    </ItemGroup>
+
+</Project>
