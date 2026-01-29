@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 using Valir.Abstractions;
 using Valir.Core;
@@ -35,6 +36,33 @@ public static class ValirServiceCollectionExtensions
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Add Valir health checks to the DI container.
+    /// </summary>
+    /// <param name="builder">The health checks builder.</param>
+    /// <param name="tags">Optional tags for the health checks.</param>
+    /// <returns>The health checks builder for chaining.</returns>
+    public static IHealthChecksBuilder AddValirHealthChecks(
+        this IHealthChecksBuilder builder,
+        string[]? tags = null)
+    {
+        tags ??= ["valir", "redis", "queue"];
+
+        builder.AddCheck<RedisHealthCheck>(
+            "valir-redis",
+            tags: tags);
+
+        builder.AddCheck<JobQueueHealthCheck>(
+            "valir-queue",
+            tags: tags);
+
+        builder.AddCheck<ValirHealthCheck>(
+            "valir",
+            tags: tags);
+
+        return builder;
     }
 
     /// <summary>

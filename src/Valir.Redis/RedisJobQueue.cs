@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using StackExchange.Redis;
 using System.Buffers;
 using Valir.Abstractions;
@@ -13,6 +15,7 @@ public sealed class RedisJobQueue : IJobQueue
     private readonly IConnectionMultiplexer _redis;
     private readonly ValirOptions _options;
     private readonly LuaScripts _scripts;
+    private readonly ILogger<RedisJobQueue> _logger;
     private readonly int _maxPayloadSize;
 
     // Key names
@@ -29,10 +32,15 @@ public sealed class RedisJobQueue : IJobQueue
     /// </summary>
     /// <param name="redis">Redis connection multiplexer.</param>
     /// <param name="options">Configuration options.</param>
-    public RedisJobQueue(IConnectionMultiplexer redis, ValirOptions options)
+    /// <param name="logger">Optional logger instance.</param>
+    public RedisJobQueue(IConnectionMultiplexer redis, ValirOptions options, ILogger<RedisJobQueue>? logger = null)
     {
+        ArgumentNullException.ThrowIfNull(redis);
+        ArgumentNullException.ThrowIfNull(options);
+
         _redis = redis;
         _options = options;
+        _logger = logger ?? NullLogger<RedisJobQueue>.Instance;
         _scripts = new LuaScripts();
         _maxPayloadSize = options.MaxPayloadSizeBytes > 0 ? options.MaxPayloadSizeBytes : 10 * 1024 * 1024; // Default 10 MB
 
@@ -44,6 +52,8 @@ public sealed class RedisJobQueue : IJobQueue
         _jobHashPrefix = $"{prefix}job:";
         _lockKeyPrefix = $"{prefix}lock:";
         _payloadKeyPrefix = $"{prefix}payload:";
+
+        _logger.LogDebug("RedisJobQueue initialized with prefix: {KeyPrefix}", prefix);
     }
 
     /// <summary>
@@ -53,7 +63,9 @@ public sealed class RedisJobQueue : IJobQueue
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task InitializeAsync()
     {
+        _logger.LogInformation("Loading Lua scripts into Redis...");
         await _scripts.LoadScriptsAsync(_redis);
+        _logger.LogInformation("Lua scripts loaded successfully");
     }
 
     /// <inheritdoc />
@@ -134,6 +146,8 @@ public sealed class RedisJobQueue : IJobQueue
 
         await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
 
+        _logger.LogDebug("Enqueued job {JobId} of type {JobType} with priority {Priority}", jobId, type, priority);
+
         return jobId;
     }
 
@@ -190,6 +204,8 @@ public sealed class RedisJobQueue : IJobQueue
 
         batch.Execute();
         await Task.WhenAll(tasks).ConfigureAwait(false);
+
+        _logger.LogDebug("Enqueued batch of {Count} jobs", jobIds.Count);
 
         return [.. jobIds];
     }
@@ -262,6 +278,8 @@ public sealed class RedisJobQueue : IJobQueue
         int attempts = (int)values[3];
         int maxAttempts = (int)values[4];
 
+        _logger.LogDebug("Job {JobId} claimed by worker {WorkerId}", jobId, workerId);
+
         return new JobEnvelope(
             Id: jobId,
             Type: type,
@@ -318,6 +336,8 @@ public sealed class RedisJobQueue : IJobQueue
                 workerId
             ]
         ).ConfigureAwait(false);
+
+        _logger.LogDebug("Job {JobId} completed by worker {WorkerId}", jobId, workerId);
     }
 
     /// <inheritdoc />
@@ -362,7 +382,7 @@ public sealed class RedisJobQueue : IJobQueue
             }
         }
 
-        await db.ScriptEvaluateAsync(
+        RedisResult result = await db.ScriptEvaluateAsync(
             _scripts.FailJob,
             [_activeKey, _retryKey, _deadKey],
             [
@@ -375,6 +395,18 @@ public sealed class RedisJobQueue : IJobQueue
                 (long)retryDelay.TotalMilliseconds
             ]
         ).ConfigureAwait(false);
+
+        string resultStr = (string)result!;
+        if (resultStr == "dead")
+        {
+            _logger.LogError("Job {JobId} moved to dead letter queue after {Attempts} attempts. Reason: {Reason}",
+                jobId, attempts, reason);
+        }
+        else
+        {
+            _logger.LogWarning("Job {JobId} failed (attempt {Attempts}/{MaxAttempts}). Retrying in {RetryDelay}s. Reason: {Reason}",
+                jobId, attempts, _options.DefaultMaxAttempts, retryDelay.TotalSeconds, reason);
+        }
     }
 
     /// <inheritdoc />
@@ -388,5 +420,7 @@ public sealed class RedisJobQueue : IJobQueue
         await db.SetRemoveAsync(_activeKey, jobId).ConfigureAwait(false);
         await db.KeyDeleteAsync(_lockKeyPrefix + jobId).ConfigureAwait(false);
         await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
+
+        _logger.LogDebug("Job {JobId} released back to queue with delay {DelayMs}ms", jobId, delay?.TotalMilliseconds ?? 0);
     }
 }

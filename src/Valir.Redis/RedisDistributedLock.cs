@@ -47,9 +47,13 @@ public sealed class RedisDistributedLock(
         IDatabase db = redis.GetDatabase();
         string lockKey = keyPrefix + Key;
 
-        // Verify ownership before extending
+        // Atomic extend using Lua script to prevent race conditions
+        // This ensures ownership verification and TTL extension happen atomically
         string script = """
             local currentOwner = redis.call('GET', KEYS[1])
+            if currentOwner == false then
+                return 0
+            end
             if currentOwner == ARGV[1] then
                 redis.call('PEXPIRE', KEYS[1], ARGV[2])
                 return 1
