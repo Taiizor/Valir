@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using Valir.Abstractions;
 
@@ -10,6 +11,7 @@ namespace Valir.Brokers.Kafka;
 public sealed class KafkaEventBroker : IEventBroker, IAsyncDisposable
 {
     private readonly KafkaOptions _options;
+    private readonly ILogger<KafkaEventBroker> _logger;
     private readonly IProducer<string, byte[]> _producer;
     private readonly Dictionary<string, IConsumer<string, byte[]>> _consumers = [];
     private readonly Lock _lock = new();
@@ -18,9 +20,11 @@ public sealed class KafkaEventBroker : IEventBroker, IAsyncDisposable
     /// Initializes a new instance of the KafkaEventBroker.
     /// </summary>
     /// <param name="options">Configuration options.</param>
-    public KafkaEventBroker(KafkaOptions options)
+    /// <param name="logger">Logger instance.</param>
+    public KafkaEventBroker(KafkaOptions options, ILogger<KafkaEventBroker> logger)
     {
         _options = options;
+        _logger = logger;
 
         ProducerConfig producerConfig = new()
         {
@@ -106,8 +110,7 @@ public sealed class KafkaEventBroker : IEventBroker, IAsyncDisposable
                 }
                 catch (ConsumeException ex)
                 {
-                    // Log and continue
-                    Console.Error.WriteLine($"Kafka consume error: {ex.Message}");
+                    _logger.LogError(ex, "Kafka consume error");
                 }
             }
         }
