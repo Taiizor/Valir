@@ -373,19 +373,34 @@ public static class ValirTelemetry
     public static readonly ActivitySource Source;
 
     /// <summary>
-    /// Start an activity for job enqueue operation.
+    /// Start an activity for enqueueing a job.
     /// </summary>
-    public static Activity? StartEnqueue(string jobType);
+    public static Activity? StartEnqueue(string jobType, string? jobId = null);
 
     /// <summary>
-    /// Start an activity for job processing.
+    /// Start an activity for publishing an event.
     /// </summary>
-    public static Activity? StartProcessing(string jobId, string jobType);
-}
+    public static Activity? StartPublish(string topic, string? eventId = null);
 
-    public static Activity? StartJobActivity(JobEnvelope job);
-    public static void RecordSuccess(Activity? activity);
-    public static void RecordFailure(Activity? activity, Exception ex);
+    /// <summary>
+    /// Start an activity for claiming a job from the queue.
+    /// </summary>
+    public static Activity? StartClaim(string workerId);
+
+    /// <summary>
+    /// Start an activity for executing a job.
+    /// </summary>
+    public static Activity? StartExecute(string jobId, string jobType, string workerId);
+
+    /// <summary>
+    /// Start an activity for completing a job.
+    /// </summary>
+    public static Activity? StartComplete(string jobId);
+
+    /// <summary>
+    /// Record an exception on an activity.
+    /// </summary>
+    public static void RecordException(Activity? activity, Exception ex);
 }
 ```
 
@@ -415,20 +430,45 @@ Uses sliding window algorithm with Lua scripts.
 
 ## Valir.EntityFrameworkCore
 
-### OutboxJobQueue
+### OutboxJobQueue<TContext>
 
-Outbox-backed job queue.
+Outbox-backed job queue that writes jobs to the database first. Ensures atomicity with application transactions.
 
 ```csharp
-public class OutboxJobQueue
+public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
 {
+    /// <summary>
+    /// Create an outbox queue that writes to DB only.
+    /// Jobs are pushed to Redis by the OutboxProcessor background service.
+    /// </summary>
+    public OutboxJobQueue(TContext context);
+
+    /// <summary>
+    /// Create an outbox queue with a fallback inner queue.
+    /// </summary>
+    public OutboxJobQueue(TContext context, IJobQueue innerQueue);
+
+    /// <inheritdoc />
     public Task<string> EnqueueAsync(
         string type,
         byte[] payload,
+        TimeSpan? delay = null,
         int priority = 0,
-        string queue = "default",
-        DateTimeOffset? delayUntil = null,
-        string? idempotencyKey = null);
+        string? idempotencyKey = null,
+        CancellationToken ct = default);
+
+    /// <inheritdoc />
+    public Task<string[]> EnqueueBatchAsync(
+        IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobs,
+        int priority = 0,
+        CancellationToken ct = default);
+
+    // These operations delegate to the inner queue (Redis)
+    public Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout, CancellationToken ct = default);
+    public Task CompleteAsync(string jobId, CancellationToken ct = default);
+    public Task FailAsync(string jobId, string reason, CancellationToken ct = default);
+    public Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default);
+    public Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default);
 }
 ```
 
