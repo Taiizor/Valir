@@ -44,14 +44,11 @@ app.MapPost("/jobs", async (IJobQueue queue) =>
 
 ```csharp
 // Define your job handler
-public class EmailJobHandler : IJobWorker
+public class EmailJobHandler : IJobHandler<EmailData>
 {
-    public string JobType => "send-email";
-
-    public async Task ExecuteAsync(JobEnvelope job, CancellationToken ct)
+    public async Task HandleAsync(EmailData job, JobContext context)
     {
-        var data = JsonSerializer.Deserialize<EmailData>(job.Payload);
-        await SendEmailAsync(data, ct);
+        await SendEmailAsync(job, context.CancellationToken);
     }
 }
 
@@ -61,7 +58,7 @@ builder.Services.AddValir(options =>
     options.RedisConnectionString = "localhost:6379";
 });
 
-builder.Services.AddSingleton<IJobWorker, EmailJobHandler>();
+builder.Services.AddSingleton<IJobHandler<EmailData>, EmailJobHandler>();
 
 var worker = app.Services.GetRequiredService<WorkerRuntime>();
 await worker.RunAsync();

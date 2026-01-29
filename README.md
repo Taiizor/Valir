@@ -92,16 +92,12 @@ app.MapPost("/send-email", async (IJobQueue queue, EmailRequest req) =>
 
 ```csharp
 // Define your job handler
-public class EmailJobHandler : IJobWorker
+public class EmailJobHandler : IJobHandler<EmailRequest>
 {
-    public string JobType => "send-email";
-
-    public async Task ExecuteAsync(JobEnvelope job, CancellationToken ct)
+    public async Task HandleAsync(EmailRequest request, JobContext context)
     {
-        var request = JsonSerializer.Deserialize<EmailRequest>(job.Payload);
-        
         // Process the job
-        await SendEmailAsync(request, ct);
+        await SendEmailAsync(request, context.CancellationToken);
         
         Console.WriteLine($"Email sent to {request.Email}");
     }
@@ -114,11 +110,11 @@ builder.Services.AddValir(options =>
     options.Concurrency = 4;
 });
 
-builder.Services.AddSingleton<IJobWorker, EmailJobHandler>();
+builder.Services.AddSingleton<IJobHandler<EmailRequest>, EmailJobHandler>();
 
 // Start worker runtime
 var worker = app.Services.GetRequiredService<WorkerRuntime>();
-await worker.RunAsync();
+await worker.StartAsync(CancellationToken.None);
 ```
 
 Or use the sample worker with TUI:
