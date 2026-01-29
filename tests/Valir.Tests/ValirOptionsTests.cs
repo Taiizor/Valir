@@ -7,7 +7,10 @@ public class ValirOptionsTests
     [Fact]
     public void DefaultOptions_HaveSensibleDefaults()
     {
-        ValirOptions options = new();
+        ValirOptions options = new()
+        {
+            RedisConnectionString = "localhost:6379"
+        };
 
         Assert.Equal("localhost:6379", options.RedisConnectionString);
         Assert.Equal("valir:", options.KeyPrefix);

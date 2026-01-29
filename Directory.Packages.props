@@ -14,6 +14,7 @@
         <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
         <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+        <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
         
         <!-- Source Link -->
         <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.102" />
@@ -35,6 +36,9 @@
         <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+        
+        <!-- Diagnostics -->
+        <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.0" />
         
         <!-- CLI Tools -->
         <PackageVersion Include="Spectre.Console" Version="0.54.1-alpha.0.36" />

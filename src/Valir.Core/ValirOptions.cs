@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Valir.Core;
 
 /// <summary>
@@ -7,8 +9,10 @@ public sealed class ValirOptions
 {
     /// <summary>
     /// Redis connection string.
+    /// WARNING: Do not use default credentials in production.
     /// </summary>
-    public string RedisConnectionString { get; set; } = "localhost:6379";
+    [Required(ErrorMessage = "RedisConnectionString must be configured")]
+    public string RedisConnectionString { get; set; } = null!;
 
     /// <summary>
     /// Key prefix for all Redis keys. Default: "valir:".
@@ -33,6 +37,7 @@ public sealed class ValirOptions
     /// <summary>
     /// Maximum number of concurrent job executions per worker.
     /// </summary>
+    [Range(1, 100, ErrorMessage = "Concurrency must be between 1 and 100")]
     public int Concurrency { get; set; } = 4;
 
     /// <summary>
@@ -69,6 +74,7 @@ public sealed class ValirOptions
     /// <summary>
     /// Maximum payload size in bytes. Default: 10 MB.
     /// </summary>
+    [Range(1024, 100 * 1024 * 1024, ErrorMessage = "MaxPayloadSizeBytes must be between 1KB and 100MB")]
     public int MaxPayloadSizeBytes { get; set; } = 10 * 1024 * 1024;
 
     /// <summary>
