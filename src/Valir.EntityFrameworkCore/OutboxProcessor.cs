@@ -104,7 +104,7 @@ public class OutboxProcessor<TContext>(
 
         try
         {
-            await redisQueue.EnqueueBatchAsync(jobsToEnqueue, pendingJobs.First().Priority);
+            await redisQueue.EnqueueBatchAsync(jobsToEnqueue, pendingJobs.First().Priority, ct);
 
             // Mark as processed
             DateTimeOffset now = DateTimeOffset.UtcNow;

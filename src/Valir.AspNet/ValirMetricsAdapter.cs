@@ -96,24 +96,17 @@ public sealed class ValirMetricsAdapter : IValirMetrics
 /// <summary>
 /// Adapter for the ProcessingTimer struct to implement IProcessingTimer.
 /// </summary>
-internal readonly struct ProcessingTimerAdapter : IProcessingTimer
+internal readonly struct ProcessingTimerAdapter(ValirMetrics.ProcessingTimer inner) : IProcessingTimer
 {
-    private readonly ValirMetrics.ProcessingTimer _inner;
-
-    public ProcessingTimerAdapter(ValirMetrics.ProcessingTimer inner)
-    {
-        _inner = inner;
-    }
-
     /// <inheritdoc />
     public IProcessingTimer MarkSuccess()
     {
-        return new ProcessingTimerAdapter(_inner.MarkSuccess());
+        return new ProcessingTimerAdapter(inner.MarkSuccess());
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        _inner.Dispose();
+        inner.Dispose();
     }
 }

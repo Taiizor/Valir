@@ -85,7 +85,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
         for (int i = 0; i < _options.Concurrency; i++)
         {
             int processorIndex = i;
-            _processorTasks.Add(ProcessorLoopAsync(_cts.Token, processorIndex));
+            _processorTasks.Add(ProcessorLoopAsync(processorIndex, _cts.Token));
             _logger.LogDebug("Started processor {ProcessorIndex}", processorIndex);
         }
 
@@ -220,7 +220,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
         return nextInterval;
     }
 
-    private async Task ProcessorLoopAsync(CancellationToken ct, int processorIndex)
+    private async Task ProcessorLoopAsync(int processorIndex, CancellationToken ct)
     {
         _logger.LogDebug("Processor {ProcessorIndex} started for {WorkerId}", processorIndex, WorkerId);
 

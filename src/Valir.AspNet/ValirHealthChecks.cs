@@ -7,21 +7,14 @@ namespace Valir.AspNet;
 /// <summary>
 /// Health check for Redis connectivity and basic operations.
 /// </summary>
-public sealed class RedisHealthCheck : IHealthCheck
+/// <remarks>
+/// Initializes a new instance of the RedisHealthCheck.
+/// </remarks>
+/// <param name="redis">Redis connection multiplexer.</param>
+/// <param name="timeout">Health check timeout.</param>
+public sealed class RedisHealthCheck(IConnectionMultiplexer redis, TimeSpan? timeout = null) : IHealthCheck
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly TimeSpan _timeout;
-
-    /// <summary>
-    /// Initializes a new instance of the RedisHealthCheck.
-    /// </summary>
-    /// <param name="redis">Redis connection multiplexer.</param>
-    /// <param name="timeout">Health check timeout.</param>
-    public RedisHealthCheck(IConnectionMultiplexer redis, TimeSpan? timeout = null)
-    {
-        _redis = redis;
-        _timeout = timeout ?? TimeSpan.FromSeconds(5);
-    }
+    private readonly TimeSpan _timeout = timeout ?? TimeSpan.FromSeconds(5);
 
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(
@@ -33,7 +26,7 @@ public sealed class RedisHealthCheck : IHealthCheck
             using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(_timeout);
 
-            IDatabase db = _redis.GetDatabase();
+            IDatabase db = redis.GetDatabase();
             string testKey = $"valir:health:{Guid.CreateVersion7():N}";
 
             // Test write operation
@@ -53,7 +46,7 @@ public sealed class RedisHealthCheck : IHealthCheck
             }
 
             // Check connection health
-            if (_redis.IsConnected)
+            if (redis.IsConnected)
             {
                 return HealthCheckResult.Healthy("Redis is connected and operational");
             }
@@ -78,27 +71,18 @@ public sealed class RedisHealthCheck : IHealthCheck
 /// <summary>
 /// Health check for job queue operations.
 /// </summary>
-public sealed class JobQueueHealthCheck : IHealthCheck
+/// <remarks>
+/// Initializes a new instance of the JobQueueHealthCheck.
+/// </remarks>
+/// <param name="queue">Job queue implementation.</param>
+/// <param name="redis">Redis connection for additional checks.</param>
+/// <param name="timeout">Health check timeout.</param>
+public sealed class JobQueueHealthCheck(
+    IJobQueue queue,
+    IConnectionMultiplexer redis,
+    TimeSpan? timeout = null) : IHealthCheck
 {
-    private readonly IJobQueue _queue;
-    private readonly IConnectionMultiplexer _redis;
-    private readonly TimeSpan _timeout;
-
-    /// <summary>
-    /// Initializes a new instance of the JobQueueHealthCheck.
-    /// </summary>
-    /// <param name="queue">Job queue implementation.</param>
-    /// <param name="redis">Redis connection for additional checks.</param>
-    /// <param name="timeout">Health check timeout.</param>
-    public JobQueueHealthCheck(
-        IJobQueue queue,
-        IConnectionMultiplexer redis,
-        TimeSpan? timeout = null)
-    {
-        _queue = queue;
-        _redis = redis;
-        _timeout = timeout ?? TimeSpan.FromSeconds(5);
-    }
+    private readonly TimeSpan _timeout = timeout ?? TimeSpan.FromSeconds(5);
 
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(
@@ -111,20 +95,20 @@ public sealed class JobQueueHealthCheck : IHealthCheck
             cts.CancelAfter(_timeout);
 
             // Test queue connectivity by attempting to claim (should return null, not throw)
-            JobEnvelope? job = await _queue.ClaimAsync("health-check-worker", TimeSpan.FromSeconds(1), cts.Token);
+            JobEnvelope? job = await queue.ClaimAsync("health-check-worker", TimeSpan.FromSeconds(1), cts.Token);
 
             // Check Redis connection state
-            if (!_redis.IsConnected)
+            if (!redis.IsConnected)
             {
                 return HealthCheckResult.Unhealthy("Redis connection is not available");
             }
 
             // Get queue statistics if possible
-            IDatabase db = _redis.GetDatabase();
+            IDatabase db = redis.GetDatabase();
             Dictionary<string, object> data = new()
             {
                 ["queueOperational"] = true,
-                ["redisConnected"] = _redis.IsConnected,
+                ["redisConnected"] = redis.IsConnected,
                 ["timestamp"] = DateTimeOffset.UtcNow.ToString("O")
             };
 
@@ -145,27 +129,18 @@ public sealed class JobQueueHealthCheck : IHealthCheck
 /// Composite health check for the entire Valir system.
 /// Checks Redis, job queue, and optionally message brokers.
 /// </summary>
-public sealed class ValirHealthCheck : IHealthCheck
+/// <remarks>
+/// Initializes a new instance of the ValirHealthCheck.
+/// </remarks>
+/// <param name="redis">Redis connection multiplexer.</param>
+/// <param name="queue">Job queue implementation.</param>
+/// <param name="timeout">Health check timeout.</param>
+public sealed class ValirHealthCheck(
+    IConnectionMultiplexer redis,
+    IJobQueue queue,
+    TimeSpan? timeout = null) : IHealthCheck
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly IJobQueue _queue;
-    private readonly TimeSpan _timeout;
-
-    /// <summary>
-    /// Initializes a new instance of the ValirHealthCheck.
-    /// </summary>
-    /// <param name="redis">Redis connection multiplexer.</param>
-    /// <param name="queue">Job queue implementation.</param>
-    /// <param name="timeout">Health check timeout.</param>
-    public ValirHealthCheck(
-        IConnectionMultiplexer redis,
-        IJobQueue queue,
-        TimeSpan? timeout = null)
-    {
-        _redis = redis;
-        _queue = queue;
-        _timeout = timeout ?? TimeSpan.FromSeconds(10);
-    }
+    private readonly TimeSpan _timeout = timeout ?? TimeSpan.FromSeconds(10);
 
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(
@@ -183,13 +158,13 @@ public sealed class ValirHealthCheck : IHealthCheck
         try
         {
             // Check Redis connectivity
-            IDatabase db = _redis.GetDatabase();
+            IDatabase db = redis.GetDatabase();
             string testKey = $"valir:health:{Guid.CreateVersion7():N}";
             await db.StringSetAsync(testKey, "ping", TimeSpan.FromSeconds(10), When.NotExists)
                 .WaitAsync(cts.Token);
             await db.KeyDeleteAsync(testKey);
             checks["redis"] = "healthy";
-            data["redisConnected"] = _redis.IsConnected;
+            data["redisConnected"] = redis.IsConnected;
         }
         catch (Exception ex)
         {
@@ -200,7 +175,7 @@ public sealed class ValirHealthCheck : IHealthCheck
         try
         {
             // Check job queue
-            JobEnvelope? job = await _queue.ClaimAsync("health-check-worker", TimeSpan.FromSeconds(1), cts.Token);
+            JobEnvelope? job = await queue.ClaimAsync("health-check-worker", TimeSpan.FromSeconds(1), cts.Token);
             checks["queue"] = "healthy";
             data["queueOperational"] = true;
         }

@@ -90,7 +90,7 @@ public class WorkerRuntimeTests
 
         // Assert
         Assert.True(jobProcessed.Task.IsCompletedSuccessfully);
-        Assert.True(_fakeQueue.CompletedJobs.Contains("test-job-1"));
+        Assert.Contains("test-job-1", _fakeQueue.CompletedJobs);
 
         await runtime.StopAsync(CancellationToken.None);
         await runtime.DisposeAsync();
@@ -116,19 +116,19 @@ public class WorkerRuntimeTests
         await runtime.StartAsync(cts.Token);
 
         // Wait for job to start
-        await jobStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await jobStarted.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
 
         // Act - Start shutdown while job is still processing
         Task stopTask = runtime.StopAsync(CancellationToken.None);
 
         // Give stop a moment to begin
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         // Complete the job
         jobCanComplete.SetResult(true);
 
         // Wait for stop to complete
-        await stopTask.WaitAsync(TimeSpan.FromSeconds(5));
+        await stopTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(_fakeQueue.CompletedJobs.Contains("slow-job") || _fakeQueue.ReleasedJobs.Contains("slow-job"));
@@ -156,11 +156,11 @@ public class WorkerRuntimeTests
         await runtime.StartAsync(cts.Token);
 
         // Wait for job to fail
-        await jobFailed.Task.WaitAsync(TimeSpan.FromSeconds(3));
-        await Task.Delay(100); // Allow time for FailAsync to be called
+        await jobFailed.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken); // Allow time for FailAsync to be called
 
         // Assert
-        Assert.True(_fakeQueue.FailedJobs.Contains("failing-job"));
+        Assert.Contains("failing-job", _fakeQueue.FailedJobs);
 
         await runtime.StopAsync(CancellationToken.None);
         await runtime.DisposeAsync();
@@ -209,7 +209,7 @@ public class WorkerRuntimeTests
 
         // Act
         await runtime.StartAsync(cts.Token);
-        await allJobsStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await allJobsStarted.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(maxConcurrentJobs > 1, "Jobs should be processed concurrently");
@@ -232,7 +232,7 @@ public class WorkerRuntimeTests
 
         // Act
         await runtime.StartAsync(cts.Token);
-        await Task.Delay(400); // Let it poll a few times
+        await Task.Delay(400, TestContext.Current.CancellationToken); // Let it poll a few times
 
         // Assert
         Assert.True(claimAttempts >= 2, "Should have attempted to claim multiple times");
@@ -364,7 +364,7 @@ internal sealed class FakeJobQueue : IJobQueue
             if (delay is null)
             {
                 // Re-enqueue immediately
-                return _jobs.Writer.WriteAsync(job).AsTask();
+                return _jobs.Writer.WriteAsync(job, ct).AsTask();
             }
         }
         return Task.CompletedTask;

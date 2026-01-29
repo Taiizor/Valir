@@ -38,7 +38,7 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
         byte[] payload = "test-payload"u8.ToArray();
 
         // Act
-        string jobId = await _queue.EnqueueAsync("test-job", payload);
+        string jobId = await _queue.EnqueueAsync("test-job", payload, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(jobId);
@@ -50,10 +50,10 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
     {
         // Arrange
         byte[] payload = "claim-test"u8.ToArray();
-        string jobId = await _queue.EnqueueAsync("claim-job", payload);
+        string jobId = await _queue.EnqueueAsync("claim-job", payload, ct: TestContext.Current.CancellationToken);
 
         // Act
-        JobEnvelope? job = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30));
+        JobEnvelope? job = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(job);
@@ -66,14 +66,14 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
     {
         // Arrange
         byte[] payload = "complete-test"u8.ToArray();
-        await _queue.EnqueueAsync("complete-job", payload);
-        JobEnvelope? job = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30));
+        await _queue.EnqueueAsync("complete-job", payload, ct: TestContext.Current.CancellationToken);
+        JobEnvelope? job = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         // Act
-        await _queue.CompleteAsync(job!.Id);
+        await _queue.CompleteAsync(job!.Id, TestContext.Current.CancellationToken);
 
         // Assert - no job should be claimable
-        JobEnvelope? nextJob = await _queue.ClaimAsync("worker-2", TimeSpan.FromSeconds(30));
+        JobEnvelope? nextJob = await _queue.ClaimAsync("worker-2", TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
         Assert.Null(nextJob);
     }
 
@@ -89,7 +89,7 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
         ];
 
         // Act
-        string[] jobIds = await _queue.EnqueueBatchAsync(jobs);
+        string[] jobIds = await _queue.EnqueueBatchAsync(jobs, ct: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, jobIds.Length);
@@ -100,11 +100,11 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
     public async Task Priority_HigherPriorityJobsProcessedFirst()
     {
         // Arrange - enqueue low priority first, then high priority
-        await _queue.EnqueueAsync("low-priority", "low"u8.ToArray(), priority: 0);
-        await _queue.EnqueueAsync("high-priority", "high"u8.ToArray(), priority: 10);
+        await _queue.EnqueueAsync("low-priority", "low"u8.ToArray(), priority: 0, ct: TestContext.Current.CancellationToken);
+        await _queue.EnqueueAsync("high-priority", "high"u8.ToArray(), priority: 10, ct: TestContext.Current.CancellationToken);
 
         // Act - claim should get high priority first
-        JobEnvelope? firstJob = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30));
+        JobEnvelope? firstJob = await _queue.ClaimAsync("worker-1", TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstJob);
