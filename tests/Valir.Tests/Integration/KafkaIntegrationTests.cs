@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging.Abstractions;
 using Testcontainers.Kafka;
 using Valir.Abstractions;
 using Valir.Brokers.Kafka;
@@ -27,7 +28,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         _broker = new KafkaEventBroker(new KafkaOptions
         {
             BootstrapServers = _kafkaContainer.GetBootstrapAddress()
-        });
+        }, NullLogger<KafkaEventBroker>.Instance);
     }
 
     public async ValueTask DisposeAsync()
