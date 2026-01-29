@@ -47,8 +47,8 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Apply Valir outbox configuration
-        modelBuilder.ApplyValirOutbox();
+        // Configure Valir outbox
+        modelBuilder.ConfigureValirOutbox();
         
         // Your other configurations...
     }
