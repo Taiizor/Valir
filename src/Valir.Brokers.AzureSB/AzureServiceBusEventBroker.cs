@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using Microsoft.Extensions.Logging;
 using Valir.Abstractions;
 
 namespace Valir.Brokers.AzureSB;
@@ -10,7 +11,8 @@ namespace Valir.Brokers.AzureSB;
 /// Initializes a new instance of the AzureServiceBusEventBroker.
 /// </remarks>
 /// <param name="options">Configuration options.</param>
-public sealed class AzureServiceBusEventBroker(AzureServiceBusOptions options) : IEventBroker, IAsyncDisposable
+/// <param name="logger">Logger instance.</param>
+public sealed class AzureServiceBusEventBroker(AzureServiceBusOptions options, ILogger<AzureServiceBusEventBroker> logger) : IEventBroker, IAsyncDisposable
 {
     private readonly ServiceBusClient _client = new(options.ConnectionString);
     private readonly Dictionary<string, ServiceBusSender> _senders = [];
@@ -81,8 +83,7 @@ public sealed class AzureServiceBusEventBroker(AzureServiceBusOptions options) :
 
         processor.ProcessErrorAsync += args =>
         {
-            // Log error - in production, use proper logging
-            Console.Error.WriteLine($"Service Bus error: {args.Exception.Message}");
+            logger.LogError(args.Exception, "Service Bus error");
             return Task.CompletedTask;
         };
 
