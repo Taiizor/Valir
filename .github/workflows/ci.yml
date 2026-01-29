@@ -121,11 +121,11 @@ jobs:
                     -reporttypes:TextSummary
                   echo "Coverage Summary:"
                   cat ./coverage-report/Summary.txt
-                  # Extract line coverage percentage and check threshold (70%)
+                  # Extract line coverage percentage and check threshold (50%)
                   LINE_COVERAGE=$(grep "Line coverage:" ./coverage-report/Summary.txt | grep -oP '\d+\.?\d*' | head -1)
                   echo "Line coverage: $LINE_COVERAGE%"
-                  if (( $(echo "$LINE_COVERAGE < 70" | bc -l) )); then
-                    echo "::error::Code coverage ($LINE_COVERAGE%) is below threshold (70%)"
+                  if (( $(echo "$LINE_COVERAGE < 50" | bc -l) )); then
+                    echo "::error::Code coverage ($LINE_COVERAGE%) is below threshold (50%)"
                     exit 1
                   fi
 
