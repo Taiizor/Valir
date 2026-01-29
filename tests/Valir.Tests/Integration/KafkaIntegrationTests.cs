@@ -1,5 +1,5 @@
-using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text;
 using Testcontainers.Kafka;
 using Valir.Abstractions;
 using Valir.Brokers.Kafka;
