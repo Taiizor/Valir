@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using System.Buffers;
 using Valir.Abstractions;
 using Valir.Core;
 
@@ -12,6 +13,7 @@ public sealed class RedisJobQueue : IJobQueue
     private readonly IConnectionMultiplexer _redis;
     private readonly ValirOptions _options;
     private readonly LuaScripts _scripts;
+    private readonly int _maxPayloadSize;
 
     // Key names
     private readonly string _waitingKey;
@@ -32,6 +34,7 @@ public sealed class RedisJobQueue : IJobQueue
         _redis = redis;
         _options = options;
         _scripts = new LuaScripts();
+        _maxPayloadSize = options.MaxPayloadSizeBytes > 0 ? options.MaxPayloadSizeBytes : 10 * 1024 * 1024; // Default 10 MB
 
         string prefix = options.KeyPrefix;
         _waitingKey = $"{prefix}queue:waiting";
@@ -41,6 +44,16 @@ public sealed class RedisJobQueue : IJobQueue
         _jobHashPrefix = $"{prefix}job:";
         _lockKeyPrefix = $"{prefix}lock:";
         _payloadKeyPrefix = $"{prefix}payload:";
+    }
+
+    /// <summary>
+    /// Initializes the queue by loading Lua scripts into Redis.
+    /// Should be called once during application startup.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task InitializeAsync()
+    {
+        await _scripts.LoadScriptsAsync(_redis);
     }
 
     /// <inheritdoc />
@@ -77,9 +90,9 @@ public sealed class RedisJobQueue : IJobQueue
             throw new ArgumentException("Payload cannot be null or empty.", nameof(payload));
         }
 
-        if (payload.Length > 10 * 1024 * 1024) // 10 MB limit
+        if (payload.Length > _maxPayloadSize)
         {
-            throw new ArgumentException("Payload cannot exceed 10 MB.", nameof(payload));
+            throw new ArgumentException($"Payload cannot exceed {_maxPayloadSize / (1024 * 1024)} MB.", nameof(payload));
         }
 
         IDatabase db = _redis.GetDatabase();
@@ -92,19 +105,33 @@ public sealed class RedisJobQueue : IJobQueue
 
         string jobKey = _jobHashPrefix + jobId;
 
-        // Store job metadata
-        HashEntry[] hashEntries =
-        [
-            new("type", type),
-            new("payload", Convert.ToBase64String(payload)),
-            new("attempts", 0),
-            new("maxAttempts", _options.DefaultMaxAttempts),
-            new("createdAt", now),
-            new("priority", priority),
-            new("idempotencyKey", idempotencyKey ?? "")
-        ];
+        // Store job metadata using ArrayPool for high-throughput scenarios
+        HashEntry[]? rentedEntries = null;
+        try
+        {
+            rentedEntries = ArrayPool<HashEntry>.Shared.Rent(7);
+            rentedEntries[0] = new("type", type);
+            rentedEntries[1] = new("payload", Convert.ToBase64String(payload));
+            rentedEntries[2] = new("attempts", 0);
+            rentedEntries[3] = new("maxAttempts", _options.DefaultMaxAttempts);
+            rentedEntries[4] = new("createdAt", now);
+            rentedEntries[5] = new("priority", priority);
+            rentedEntries[6] = new("idempotencyKey", idempotencyKey ?? "");
 
-        await db.HashSetAsync(jobKey, hashEntries).ConfigureAwait(false);
+            // Create a properly sized array for the API call
+            HashEntry[] hashEntries = new HashEntry[7];
+            Array.Copy(rentedEntries, hashEntries, 7);
+
+            await db.HashSetAsync(jobKey, hashEntries).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (rentedEntries is not null)
+            {
+                ArrayPool<HashEntry>.Shared.Return(rentedEntries);
+            }
+        }
+
         await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
 
         return jobId;
@@ -130,18 +157,34 @@ public sealed class RedisJobQueue : IJobQueue
             jobIds.Add(jobId);
 
             string jobKey = _jobHashPrefix + jobId;
-            HashEntry[] hashEntries =
-            [
-                new("type", type),
-                new("payload", Convert.ToBase64String(payload)),
-                new("attempts", 0),
-                new("maxAttempts", _options.DefaultMaxAttempts),
-                new("createdAt", now),
-                new("priority", priority),
-                new("idempotencyKey", idempotencyKey ?? "")
-            ];
 
-            tasks.Add(batch.HashSetAsync(jobKey, hashEntries));
+            // Use ArrayPool for batch operations
+            HashEntry[]? rentedEntries = null;
+            try
+            {
+                rentedEntries = ArrayPool<HashEntry>.Shared.Rent(7);
+                rentedEntries[0] = new("type", type);
+                rentedEntries[1] = new("payload", Convert.ToBase64String(payload));
+                rentedEntries[2] = new("attempts", 0);
+                rentedEntries[3] = new("maxAttempts", _options.DefaultMaxAttempts);
+                rentedEntries[4] = new("createdAt", now);
+                rentedEntries[5] = new("priority", priority);
+                rentedEntries[6] = new("idempotencyKey", idempotencyKey ?? "");
+
+                // Create a properly sized array for the API call
+                HashEntry[] hashEntries = new HashEntry[7];
+                Array.Copy(rentedEntries, hashEntries, 7);
+
+                tasks.Add(batch.HashSetAsync(jobKey, hashEntries));
+            }
+            finally
+            {
+                if (rentedEntries is not null)
+                {
+                    ArrayPool<HashEntry>.Shared.Return(rentedEntries);
+                }
+            }
+
             tasks.Add(batch.SortedSetAddAsync(_waitingKey, jobId, score));
         }
 
@@ -157,17 +200,55 @@ public sealed class RedisJobQueue : IJobQueue
         IDatabase db = _redis.GetDatabase();
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        RedisResult result = await db.ScriptEvaluateAsync(
-            _scripts.ClaimJob,
-            [_waitingKey, _activeKey],
-            [
-                _jobHashPrefix,
-                _lockKeyPrefix,
-                workerId,
-                now,
-                (long)claimTimeout.TotalMilliseconds
-            ]
-        ).ConfigureAwait(false);
+        RedisResult result;
+
+        // Try using cached script hash (EVALSHA) for better performance
+        if (_scripts.ClaimJobHash is not null)
+        {
+            try
+            {
+                result = await db.ScriptEvaluateAsync(
+                    _scripts.ClaimJobHash,
+                    [_waitingKey, _activeKey],
+                    [
+                        _jobHashPrefix,
+                        _lockKeyPrefix,
+                        workerId,
+                        now,
+                        (long)claimTimeout.TotalMilliseconds
+                    ]
+                ).ConfigureAwait(false);
+            }
+            catch (RedisServerException ex) when (ex.Message.Contains("NOSCRIPT"))
+            {
+                // Script not in cache, fall back to EVAL
+                result = await db.ScriptEvaluateAsync(
+                    _scripts.ClaimJob,
+                    [_waitingKey, _activeKey],
+                    [
+                        _jobHashPrefix,
+                        _lockKeyPrefix,
+                        workerId,
+                        now,
+                        (long)claimTimeout.TotalMilliseconds
+                    ]
+                ).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            result = await db.ScriptEvaluateAsync(
+                _scripts.ClaimJob,
+                [_waitingKey, _activeKey],
+                [
+                    _jobHashPrefix,
+                    _lockKeyPrefix,
+                    workerId,
+                    now,
+                    (long)claimTimeout.TotalMilliseconds
+                ]
+            ).ConfigureAwait(false);
+        }
 
         if (result.IsNull)
         {
@@ -202,6 +283,30 @@ public sealed class RedisJobQueue : IJobQueue
         RedisValue lockOwner = await db.StringGetAsync(lockKey).ConfigureAwait(false);
         string workerId = lockOwner.IsNull ? "*" : (string)lockOwner!;
 
+        // Try using cached script hash first
+        if (_scripts.CompleteJobHash is not null)
+        {
+            try
+            {
+                await db.ScriptEvaluateAsync(
+                    _scripts.CompleteJobHash,
+                    [_activeKey],
+                    [
+                        _jobHashPrefix,
+                        _lockKeyPrefix,
+                        _payloadKeyPrefix,
+                        jobId,
+                        workerId
+                    ]
+                ).ConfigureAwait(false);
+                return;
+            }
+            catch (RedisServerException ex) when (ex.Message.Contains("NOSCRIPT"))
+            {
+                // Fall through to EVAL
+            }
+        }
+
         await db.ScriptEvaluateAsync(
             _scripts.CompleteJob,
             [_activeKey],
@@ -230,6 +335,32 @@ public sealed class RedisJobQueue : IJobQueue
         string jobKey = _jobHashPrefix + jobId;
         int attempts = (int)await db.HashGetAsync(jobKey, "attempts").ConfigureAwait(false);
         TimeSpan retryDelay = RetryPolicy.CalculateDelay(attempts, _options.RetryBaseDelay);
+
+        // Try using cached script hash first
+        if (_scripts.FailJobHash is not null)
+        {
+            try
+            {
+                await db.ScriptEvaluateAsync(
+                    _scripts.FailJobHash,
+                    [_activeKey, _retryKey, _deadKey],
+                    [
+                        _jobHashPrefix,
+                        _lockKeyPrefix,
+                        jobId,
+                        workerId,
+                        reason,
+                        now,
+                        (long)retryDelay.TotalMilliseconds
+                    ]
+                ).ConfigureAwait(false);
+                return;
+            }
+            catch (RedisServerException ex) when (ex.Message.Contains("NOSCRIPT"))
+            {
+                // Fall through to EVAL
+            }
+        }
 
         await db.ScriptEvaluateAsync(
             _scripts.FailJob,

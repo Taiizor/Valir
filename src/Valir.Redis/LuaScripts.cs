@@ -1,7 +1,9 @@
+using StackExchange.Redis;
+
 namespace Valir.Redis;
 
 /// <summary>
-/// Manages Lua script strings for atomic Redis operations.
+/// Manages Lua script strings and their cached hashes for atomic Redis operations.
 /// These scripts ensure consistency in multi-command operations.
 /// </summary>
 internal sealed class LuaScripts
@@ -27,6 +29,26 @@ internal sealed class LuaScripts
     public string RequeueRetries { get; }
 
     /// <summary>
+    /// Cached SHA1 hash for the ClaimJob script (for EVALSHA).
+    /// </summary>
+    public byte[]? ClaimJobHash { get; private set; }
+
+    /// <summary>
+    /// Cached SHA1 hash for the CompleteJob script (for EVALSHA).
+    /// </summary>
+    public byte[]? CompleteJobHash { get; private set; }
+
+    /// <summary>
+    /// Cached SHA1 hash for the FailJob script (for EVALSHA).
+    /// </summary>
+    public byte[]? FailJobHash { get; private set; }
+
+    /// <summary>
+    /// Cached SHA1 hash for the RequeueRetries script (for EVALSHA).
+    /// </summary>
+    public byte[]? RequeueRetriesHash { get; private set; }
+
+    /// <summary>
     /// Initialize all Lua scripts.
     /// </summary>
     public LuaScripts()
@@ -35,6 +57,24 @@ internal sealed class LuaScripts
         CompleteJob = CompleteJobScript;
         FailJob = FailJobScript;
         RequeueRetries = RequeueRetriesScript;
+    }
+
+    /// <summary>
+    /// Loads all scripts into Redis and caches their SHA1 hashes for EVALSHA.
+    /// Should be called once during initialization.
+    /// </summary>
+    /// <param name="redis">Redis connection multiplexer.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task LoadScriptsAsync(IConnectionMultiplexer redis)
+    {
+        IDatabase db = redis.GetDatabase();
+        IServer server = redis.GetServer(redis.GetEndPoints().First());
+
+        // Load scripts and cache their hashes
+        ClaimJobHash = await server.ScriptLoadAsync(ClaimJob);
+        CompleteJobHash = await server.ScriptLoadAsync(CompleteJob);
+        FailJobHash = await server.ScriptLoadAsync(FailJob);
+        RequeueRetriesHash = await server.ScriptLoadAsync(RequeueRetries);
     }
 
     private const string ClaimJobScript = """

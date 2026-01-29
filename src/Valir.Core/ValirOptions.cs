@@ -49,4 +49,37 @@ public sealed class ValirOptions
     /// Polling interval when no jobs are available.
     /// </summary>
     public TimeSpan PollingInterval { get; set; } = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>
+    /// Maximum polling interval during exponential backoff (when queue is empty).
+    /// Default: 5 seconds.
+    /// </summary>
+    public TimeSpan MaxPollingInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Backoff multiplier for empty queue polling. Default: 2.0.
+    /// </summary>
+    public double PollingBackoffMultiplier { get; set; } = 2.0;
+
+    /// <summary>
+    /// Enable jitter for polling intervals to prevent thundering herd. Default: true.
+    /// </summary>
+    public bool EnablePollingJitter { get; set; } = true;
+
+    /// <summary>
+    /// Maximum payload size in bytes. Default: 10 MB.
+    /// </summary>
+    public int MaxPayloadSizeBytes { get; set; } = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// Heartbeat interval divisor for lock extension.
+    /// Heartbeat runs every VisibilityTimeout / HeartbeatIntervalDivisor.
+    /// Default: 3 (heartbeat every 1/3 of visibility timeout).
+    /// </summary>
+    public int HeartbeatIntervalDivisor { get; set; } = 3;
+
+    /// <summary>
+    /// Enable automatic lock extension via heartbeat. Default: true.
+    /// </summary>
+    public bool EnableHeartbeat { get; set; } = true;
 }
