@@ -1,3 +1,4 @@
+using System.Text;
 using Testcontainers.Kafka;
 using Valir.Abstractions;
 using Valir.Brokers.Kafka;
@@ -42,7 +43,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         EventEnvelope envelope = new(
             Id: Guid.CreateVersion7().ToString(),
             Topic: "test-topic",
-            Payload: System.Text.Encoding.UTF8.GetBytes("""{"message":"hello"}"""),
+            Payload: Encoding.UTF8.GetBytes("""{"message":"hello"}"""),
             PublishedAt: DateTimeOffset.UtcNow
         );
 
@@ -64,7 +65,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         EventEnvelope envelope = new(
             Id: Guid.CreateVersion7().ToString(),
             Topic: topic,
-            Payload: System.Text.Encoding.UTF8.GetBytes("""{"test":"kafka-data"}"""),
+            Payload: Encoding.UTF8.GetBytes("""{"test":"kafka-data"}"""),
             PublishedAt: DateTimeOffset.UtcNow
         );
 
@@ -96,7 +97,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         EventEnvelope secondEnvelope = new(
             Id: Guid.CreateVersion7().ToString(),
             Topic: topic,
-            Payload: System.Text.Encoding.UTF8.GetBytes("""{"test":"kafka-data-2"}"""),
+            Payload: Encoding.UTF8.GetBytes("""{"test":"kafka-data-2"}"""),
             PublishedAt: DateTimeOffset.UtcNow
         );
         await _broker.PublishAsync(topic, secondEnvelope);

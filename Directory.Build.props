@@ -24,7 +24,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/Taiizor/Valir</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>background-jobs;distributed;redis;dragonfly;garnet;queue;event-bus;kafka;rabbitmq;azure-service-bus;dotnet;worker;job-scheduler;message-queue;valir</PackageTags>
+        <PackageTags>background-jobs;distributed;redis;dragonfly;garnet;queue;event-bus;mq;kafka;rabbitmq;azure-service-bus;dotnet;worker;job-scheduler;message-queue;valir</PackageTags>
         <PackageReleaseNotes>https://github.com/Taiizor/Valir/releases</PackageReleaseNotes>
 
         <!-- Source Link -->
