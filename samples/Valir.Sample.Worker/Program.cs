@@ -20,8 +20,7 @@ ValirOptions options = new()
 {
     RedisConnectionString = redis,
     Concurrency = concurrency,
-    Queues = queues.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-    EnableTui = interactive
+    Queues = queues.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 };
 
 if (interactive)

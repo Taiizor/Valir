@@ -49,9 +49,4 @@ public sealed class ValirOptions
     /// Polling interval when no jobs are available.
     /// </summary>
     public TimeSpan PollingInterval { get; set; } = TimeSpan.FromMilliseconds(100);
-
-    /// <summary>
-    /// Enable interactive TUI mode (Spectre.Console dashboard).
-    /// </summary>
-    public bool EnableTui { get; set; } = true;
 }
