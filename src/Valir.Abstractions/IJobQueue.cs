@@ -84,4 +84,16 @@ public interface IJobQueue
     /// <exception cref="ArgumentException">Thrown when jobId is null or empty.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
     Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Atomically extend the lock TTL for a job currently being processed.
+    /// </summary>
+    /// <param name="jobId">The job to extend the lock for.</param>
+    /// <param name="workerId">Unique identifier of the worker holding the lock.</param>
+    /// <param name="extension">Duration to extend the lock by.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>True if the lock was extended successfully, false if the lock is not held by the requesting worker or doesn't exist.</returns>
+    /// <exception cref="ArgumentException">Thrown when jobId or workerId is null or empty.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default);
 }

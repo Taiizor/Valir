@@ -369,4 +369,10 @@ internal sealed class FakeJobQueue : IJobQueue
         }
         return Task.CompletedTask;
     }
+
+    public Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default)
+    {
+        // Fake implementation - always returns true if job is active
+        return Task.FromResult(_activeJobs.ContainsKey(jobId));
+    }
 }

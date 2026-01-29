@@ -107,6 +107,29 @@ public sealed class RedisJobQueue : IJobQueue
             throw new ArgumentException($"Payload cannot exceed {_maxPayloadSize / (1024 * 1024)} MB.", nameof(payload));
         }
 
+        // Validate idempotency key if provided
+        if (idempotencyKey is not null)
+        {
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+            {
+                throw new ArgumentException("Idempotency key cannot be empty or whitespace.", nameof(idempotencyKey));
+            }
+
+            if (idempotencyKey.Length is < 1 or > 128)
+            {
+                throw new ArgumentException("Idempotency key must be between 1 and 128 characters.", nameof(idempotencyKey));
+            }
+
+            // Validate idempotency key format (alphanumeric, hyphens, underscores only)
+            foreach (char c in idempotencyKey)
+            {
+                if (!char.IsLetterOrDigit(c) && c != '-' && c != '_')
+                {
+                    throw new ArgumentException("Idempotency key can only contain alphanumeric characters, hyphens, and underscores.", nameof(idempotencyKey));
+                }
+            }
+        }
+
         IDatabase db = _redis.GetDatabase();
         string jobId = Guid.CreateVersion7().ToString("N");
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -422,5 +445,74 @@ public sealed class RedisJobQueue : IJobQueue
         await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
 
         _logger.LogDebug("Job {JobId} released back to queue with delay {DelayMs}ms", jobId, delay?.TotalMilliseconds ?? 0);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(jobId);
+        ArgumentException.ThrowIfNullOrEmpty(workerId);
+
+        if (extension <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("Extension duration must be positive.", nameof(extension));
+        }
+
+        IDatabase db = _redis.GetDatabase();
+        string lockKey = _lockKeyPrefix + jobId;
+
+        RedisResult result;
+
+        // Try using cached script hash first
+        if (_scripts.ExtendLockHash is not null)
+        {
+            try
+            {
+                result = await db.ScriptEvaluateAsync(
+                    _scripts.ExtendLockHash,
+                    [lockKey],
+                    [
+                        workerId,
+                        (long)extension.TotalMilliseconds
+                    ]
+                ).ConfigureAwait(false);
+            }
+            catch (RedisServerException ex) when (ex.Message.Contains("NOSCRIPT"))
+            {
+                // Fall through to EVAL
+                result = await db.ScriptEvaluateAsync(
+                    _scripts.ExtendLock,
+                    [lockKey],
+                    [
+                        workerId,
+                        (long)extension.TotalMilliseconds
+                    ]
+                ).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            result = await db.ScriptEvaluateAsync(
+                _scripts.ExtendLock,
+                [lockKey],
+                [
+                    workerId,
+                    (long)extension.TotalMilliseconds
+                ]
+            ).ConfigureAwait(false);
+        }
+
+        bool success = (int)result! == 1;
+
+        if (success)
+        {
+            _logger.LogDebug("Lock extended for job {JobId} by worker {WorkerId}", jobId, workerId);
+        }
+        else
+        {
+            _logger.LogWarning("Failed to extend lock for job {JobId} - lock not held by worker {WorkerId}", jobId, workerId);
+        }
+
+        return success;
     }
 }

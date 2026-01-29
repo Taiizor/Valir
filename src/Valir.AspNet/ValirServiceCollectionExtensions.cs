@@ -33,6 +33,13 @@ public static class ValirServiceCollectionExtensions
         });
         services.AddSingleton<IJobQueue, RedisJobQueue>();
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();
+        services.AddSingleton<IValirMetrics, ValirMetricsAdapter>();
+
+        if (options.AutoRegisterHealthChecks)
+        {
+            services.AddHealthChecks()
+                .AddValirHealthChecks();
+        }
 
         return services;
     }

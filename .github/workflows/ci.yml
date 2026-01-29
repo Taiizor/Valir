@@ -36,7 +36,14 @@ jobs:
               run: dotnet build --no-restore --configuration Release
 
             - name: Run unit tests
-              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName!~Integration" --verbosity normal
+              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName!~Integration" --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+            - name: Upload unit test coverage
+              uses: actions/upload-artifact@v6
+              with:
+                  name: coverage-unit-tests
+                  path: ./coverage/**/coverage.cobertura.xml
+                  retention-days: 30
 
     integration-tests:
         runs-on: ubuntu-latest
@@ -68,9 +75,59 @@ jobs:
               run: dotnet build --no-restore --configuration Release
 
             - name: Run integration tests
-              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName~Integration" --verbosity normal
+              run: dotnet test tests/Valir.Tests --no-build --configuration Release --filter "FullyQualifiedName~Integration" --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
               env:
                   REDIS_CONNECTION: localhost:6379
+
+            - name: Upload integration test coverage
+              uses: actions/upload-artifact@v6
+              with:
+                  name: coverage-integration-tests
+                  path: ./coverage/**/coverage.cobertura.xml
+                  retention-days: 30
+
+    coverage-report:
+        runs-on: ubuntu-latest
+        needs: [build, integration-tests]
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Download unit test coverage
+              uses: actions/download-artifact@v6
+              with:
+                  name: coverage-unit-tests
+                  path: ./coverage/unit
+
+            - name: Download integration test coverage
+              uses: actions/download-artifact@v6
+              with:
+                  name: coverage-integration-tests
+                  path: ./coverage/integration
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v5
+              with:
+                  files: ./coverage/unit/**/coverage.cobertura.xml,./coverage/integration/**/coverage.cobertura.xml
+                  fail_ci_if_error: false
+                  verbose: true
+
+            - name: Check coverage threshold
+              run: |
+                  dotnet tool install --global dotnet-reportgenerator-globaltool
+                  reportgenerator \
+                    -reports:./coverage/**/coverage.cobertura.xml \
+                    -targetdir:./coverage-report \
+                    -reporttypes:TextSummary
+                  echo "Coverage Summary:"
+                  cat ./coverage-report/Summary.txt
+                  # Extract line coverage percentage and check threshold (70%)
+                  LINE_COVERAGE=$(grep "Line coverage:" ./coverage-report/Summary.txt | grep -oP '\d+\.?\d*' | head -1)
+                  echo "Line coverage: $LINE_COVERAGE%"
+                  if (( $(echo "$LINE_COVERAGE < 70" | bc -l) )); then
+                    echo "::error::Code coverage ($LINE_COVERAGE%) is below threshold (70%)"
+                    exit 1
+                  fi
 
     package:
         runs-on: ubuntu-latest

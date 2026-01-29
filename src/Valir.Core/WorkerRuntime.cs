@@ -15,6 +15,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
     private readonly Func<JobEnvelope, JobContext, Task> _handler;
     private readonly ValirOptions _options;
     private readonly ILogger<WorkerRuntime> _logger;
+    private readonly IValirMetrics _metrics;
     private readonly Channel<JobEnvelope> _channel;
     private readonly List<Task> _processorTasks = [];
     private readonly CancellationTokenSource?[] _heartbeatCts;
@@ -37,12 +38,14 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
     /// <param name="options">Configuration options.</param>
     /// <param name="workerId">Optional explicit worker ID.</param>
     /// <param name="logger">Optional logger instance.</param>
+    /// <param name="metrics">Optional metrics instance.</param>
     public WorkerRuntime(
         IJobQueue queue,
         Func<JobEnvelope, JobContext, Task> handler,
         ValirOptions options,
         string? workerId = null,
-        ILogger<WorkerRuntime>? logger = null)
+        ILogger<WorkerRuntime>? logger = null,
+        IValirMetrics? metrics = null)
     {
         ArgumentNullException.ThrowIfNull(queue);
         ArgumentNullException.ThrowIfNull(handler);
@@ -52,6 +55,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
         _handler = handler;
         _options = options;
         _logger = logger ?? NullLogger<WorkerRuntime>.Instance;
+        _metrics = metrics ?? NullValirMetrics.Instance;
         WorkerId = workerId ?? $"worker-{Guid.CreateVersion7():N}";
         _currentPollingInterval = options.PollingInterval;
         _heartbeatCts = new CancellationTokenSource?[options.Concurrency];
@@ -73,6 +77,9 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
 
         _logger.LogInformation("Starting WorkerRuntime {WorkerId} with {Concurrency} processors",
             WorkerId, _options.Concurrency);
+
+        // Increment active workers metric
+        _metrics.IncrementActiveWorkers();
 
         // Start processor tasks
         for (int i = 0; i < _options.Concurrency; i++)
@@ -128,6 +135,11 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
             _logger.LogWarning("WorkerRuntime {WorkerId} shutdown timed out after {Timeout}s. {ActiveJobs} jobs may have been released.",
                 WorkerId, _options.ShutdownTimeout.TotalSeconds, _activeJobs);
         }
+        finally
+        {
+            // Decrement active workers metric
+            _metrics.DecrementActiveWorkers();
+        }
     }
 
     private async Task ClaimLoopAsync(CancellationToken ct)
@@ -151,6 +163,13 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
 
                 // Reset polling interval on successful claim
                 _currentPollingInterval = _options.PollingInterval;
+
+                // Record job claimed metric
+                _metrics.RecordJobClaimed(WorkerId, job.Type);
+
+                // Record wait time (time between enqueue and claim)
+                TimeSpan waitTime = DateTimeOffset.UtcNow - job.CreatedAt;
+                _metrics.RecordJobWaitTime(waitTime, job.Type);
 
                 _logger.LogDebug("Claimed job {JobId} of type {JobType}", job.Id, job.Type);
                 await _channel.Writer.WriteAsync(job, ct).ConfigureAwait(false);
@@ -208,13 +227,25 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
         await foreach (JobEnvelope job in _channel.Reader.ReadAllAsync(ct))
         {
             Interlocked.Increment(ref _activeJobs);
+            _metrics.IncrementActiveJobs();
             CancellationTokenSource? heartbeatCts = null;
+            IProcessingTimer? timer = null;
+            bool success = false;
 
             _logger.LogInformation("Processing job {JobId} of type {JobType} (Attempt {Attempt}/{MaxAttempts})",
                 job.Id, job.Type, job.Attempts, job.MaxAttempts);
 
             try
             {
+                // Start processing timer
+                timer = _metrics.StartProcessingTimer(job.Type);
+
+                // Record payload size if available
+                if (job.Payload is not null)
+                {
+                    _metrics.RecordPayloadSize(job.Payload.Length, job.Type);
+                }
+
                 JobContext context = new(
                     job.Id,
                     WorkerId,
@@ -235,6 +266,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
                 {
                     await _handler(job, context).ConfigureAwait(false);
                     await _queue.CompleteAsync(job.Id, ct).ConfigureAwait(false);
+                    success = true;
                     _logger.LogInformation("Job {JobId} completed successfully", job.Id);
                 }
                 catch (Exception ex)
@@ -261,6 +293,33 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
             finally
             {
                 Interlocked.Decrement(ref _activeJobs);
+                _metrics.DecrementActiveJobs();
+
+                // Record processing duration and outcome
+                if (timer is not null)
+                {
+                    if (success)
+                    {
+                        timer.MarkSuccess();
+                        _metrics.RecordJobCompleted(job.Type, job.Attempts);
+                    }
+                    else
+                    {
+                        bool willRetry = job.Attempts < job.MaxAttempts;
+                        _metrics.RecordJobFailed(job.Type, willRetry);
+
+                        if (willRetry)
+                        {
+                            _metrics.RecordJobRetried(job.Type, job.Attempts);
+                        }
+                        else
+                        {
+                            _metrics.RecordJobDeadLettered(job.Type, job.Attempts);
+                        }
+                    }
+                    timer.Dispose();
+                }
+
                 heartbeatCts?.Dispose();
             }
         }
@@ -304,21 +363,28 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
 
     /// <summary>
     /// Extends the lock on a job to prevent it from being reclaimed.
+    /// Uses atomic lock extension via the queue.
     /// </summary>
     private async Task ExtendJobLockAsync(string jobId, TimeSpan extension, CancellationToken ct)
     {
         try
         {
-            // Release with a very short delay and let the claim loop re-acquire
-            // This is a simple pattern - in production you might use a Lua script
-            // to atomically extend the lock without releasing it
-            await _queue.ReleaseAsync(jobId, TimeSpan.FromMilliseconds(1), ct).ConfigureAwait(false);
+            bool success = await _queue.ExtendLockAsync(jobId, WorkerId, extension, ct).ConfigureAwait(false);
+
+            if (!success)
+            {
+                _logger.LogWarning("Failed to extend lock for job {JobId} - lock may have been reclaimed by another worker", jobId);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Normal cancellation, don't log as error
+            throw;
         }
         catch (Exception ex)
         {
-            // If release fails, the job may have already been reclaimed
-            // The processor will handle this on completion attempt
-            _logger.LogDebug(ex, "Failed to release job {JobId} for lock extension", jobId);
+            // Log error but don't throw - heartbeat will retry
+            _logger.LogWarning(ex, "Error extending lock for job {JobId}", jobId);
         }
     }
 

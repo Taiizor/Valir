@@ -88,4 +88,9 @@ public sealed class ValirOptions
     /// Enable automatic lock extension via heartbeat. Default: true.
     /// </summary>
     public bool EnableHeartbeat { get; set; } = true;
+
+    /// <summary>
+    /// Automatically register Valir health checks with the DI container. Default: false.
+    /// </summary>
+    public bool AutoRegisterHealthChecks { get; set; } = false;
 }

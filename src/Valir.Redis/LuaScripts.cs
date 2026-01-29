@@ -29,6 +29,11 @@ internal sealed class LuaScripts
     public string RequeueRetries { get; }
 
     /// <summary>
+    /// Lua script for atomically extending a job lock TTL.
+    /// </summary>
+    public string ExtendLock { get; }
+
+    /// <summary>
     /// Cached SHA1 hash for the ClaimJob script (for EVALSHA).
     /// </summary>
     public byte[]? ClaimJobHash { get; private set; }
@@ -49,6 +54,11 @@ internal sealed class LuaScripts
     public byte[]? RequeueRetriesHash { get; private set; }
 
     /// <summary>
+    /// Cached SHA1 hash for the ExtendLock script (for EVALSHA).
+    /// </summary>
+    public byte[]? ExtendLockHash { get; private set; }
+
+    /// <summary>
     /// Initialize all Lua scripts.
     /// </summary>
     public LuaScripts()
@@ -57,6 +67,7 @@ internal sealed class LuaScripts
         CompleteJob = CompleteJobScript;
         FailJob = FailJobScript;
         RequeueRetries = RequeueRetriesScript;
+        ExtendLock = ExtendLockScript;
     }
 
     /// <summary>
@@ -75,6 +86,7 @@ internal sealed class LuaScripts
         CompleteJobHash = await server.ScriptLoadAsync(CompleteJob);
         FailJobHash = await server.ScriptLoadAsync(FailJob);
         RequeueRetriesHash = await server.ScriptLoadAsync(RequeueRetries);
+        ExtendLockHash = await server.ScriptLoadAsync(ExtendLock);
     }
 
     private const string ClaimJobScript = """
@@ -183,5 +195,27 @@ internal sealed class LuaScripts
         end
         
         return count
+        """;
+
+    private const string ExtendLockScript = """
+        local lockKey = KEYS[1]
+        local workerId = ARGV[1]
+        local extensionMs = tonumber(ARGV[2])
+        
+        local currentOwner = redis.call('GET', lockKey)
+        
+        if currentOwner == false or currentOwner ~= workerId then
+            return 0
+        end
+        
+        local currentTtl = redis.call('PTTL', lockKey)
+        if currentTtl < 0 then
+            return 0
+        end
+        
+        local newTtl = currentTtl + extensionMs
+        redis.call('PEXPIRE', lockKey, newTtl)
+        
+        return 1
         """;
 }

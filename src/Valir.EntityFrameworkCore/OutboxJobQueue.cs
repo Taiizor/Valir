@@ -102,4 +102,10 @@ public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
     {
         return _innerQueue?.ReleaseAsync(jobId, delay, ct) ?? Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default)
+    {
+        return _innerQueue?.ExtendLockAsync(jobId, workerId, extension, ct) ?? Task.FromResult(false);
+    }
 }
