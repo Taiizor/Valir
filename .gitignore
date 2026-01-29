@@ -158,7 +158,6 @@ AppPackages/
 
 # Others
 sql/
-.agent/
 *.Cache
 ClientBin/
 [Ss]tyle[Cc]op.*
