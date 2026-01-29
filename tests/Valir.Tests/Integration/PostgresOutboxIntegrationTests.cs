@@ -54,10 +54,10 @@ public class PostgresOutboxIntegrationTests : IAsyncLifetime
 
         // Act
         _dbContext.OutboxEntries.Add(entry);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        OutboxEntry? saved = await _dbContext.OutboxEntries.FindAsync(entry.Id);
+        OutboxEntry? saved = await _dbContext.OutboxEntries.FindAsync([entry.Id], TestContext.Current.CancellationToken);
         Assert.NotNull(saved);
         Assert.Equal("TestJob", saved.JobType);
         Assert.Null(saved.ProcessedAt);
@@ -77,14 +77,14 @@ public class PostgresOutboxIntegrationTests : IAsyncLifetime
         };
 
         _dbContext.OutboxEntries.Add(entry);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         entry.ProcessedAt = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Assert
-        OutboxEntry? processed = await _dbContext.OutboxEntries.FindAsync(entry.Id);
+        OutboxEntry? processed = await _dbContext.OutboxEntries.FindAsync([entry.Id], TestContext.Current.CancellationToken);
         Assert.NotNull(processed);
         Assert.NotNull(processed.ProcessedAt);
     }
@@ -121,12 +121,12 @@ public class PostgresOutboxIntegrationTests : IAsyncLifetime
         };
 
         _dbContext.OutboxEntries.AddRange(unprocessed1, unprocessed2, processed);
-        await _dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         List<OutboxEntry> unprocessedEntries = await _dbContext.OutboxEntries
             .Where(e => e.ProcessedAt == null)
-            .ToListAsync();
+            .ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, unprocessedEntries.Count);
@@ -137,10 +137,8 @@ public class PostgresOutboxIntegrationTests : IAsyncLifetime
 /// <summary>
 /// Test DbContext for integration tests.
 /// </summary>
-public class TestDbContext : DbContext
+public class TestDbContext(DbContextOptions<TestDbContext> options) : DbContext(options)
 {
-    public TestDbContext(DbContextOptions<TestDbContext> options) : base(options) { }
-
     public DbSet<OutboxEntry> OutboxEntries => Set<OutboxEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

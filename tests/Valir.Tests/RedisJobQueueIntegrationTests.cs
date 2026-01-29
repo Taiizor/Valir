@@ -81,12 +81,12 @@ public class RedisJobQueueIntegrationTests : IAsyncLifetime
     public async Task EnqueueBatchAsync_ShouldEnqueueMultipleJobs()
     {
         // Arrange
-        (string, byte[], string?)[] jobs = new[]
-        {
+        (string, byte[], string?)[] jobs =
+        [
             ("batch-job-1", "payload1"u8.ToArray(), (string?)null),
             ("batch-job-2", "payload2"u8.ToArray(), (string?)null),
             ("batch-job-3", "payload3"u8.ToArray(), (string?)null)
-        };
+        ];
 
         // Act
         string[] jobIds = await _queue.EnqueueBatchAsync(jobs);

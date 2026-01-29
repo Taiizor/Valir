@@ -35,32 +35,21 @@ public class OutboxProcessorOptions
 /// <summary>
 /// Background service that processes the outbox and pushes jobs to Redis.
 /// </summary>
-public class OutboxProcessor<TContext> : BackgroundService where TContext : DbContext
+/// <remarks>
+/// Initializes a new instance of the OutboxProcessor.
+/// </remarks>
+/// <param name="scopeFactory">Service scope factory for creating DbContexts.</param>
+/// <param name="options">Configuration options.</param>
+/// <param name="logger">Logger instance.</param>
+public class OutboxProcessor<TContext>(
+    IServiceScopeFactory scopeFactory,
+    OutboxProcessorOptions options,
+    ILogger<OutboxProcessor<TContext>> logger) : BackgroundService where TContext : DbContext
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly OutboxProcessorOptions _options;
-    private readonly ILogger<OutboxProcessor<TContext>> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the OutboxProcessor.
-    /// </summary>
-    /// <param name="scopeFactory">Service scope factory for creating DbContexts.</param>
-    /// <param name="options">Configuration options.</param>
-    /// <param name="logger">Logger instance.</param>
-    public OutboxProcessor(
-        IServiceScopeFactory scopeFactory,
-        OutboxProcessorOptions options,
-        ILogger<OutboxProcessor<TContext>> logger)
-    {
-        _scopeFactory = scopeFactory;
-        _options = options;
-        _logger = logger;
-    }
-
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Outbox processor started");
+        logger.LogInformation("Outbox processor started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -71,32 +60,32 @@ public class OutboxProcessor<TContext> : BackgroundService where TContext : DbCo
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Error processing outbox");
+                logger.LogError(ex, "Error processing outbox");
             }
 
-            await Task.Delay(_options.PollingInterval, stoppingToken);
+            await Task.Delay(options.PollingInterval, stoppingToken);
         }
 
-        _logger.LogInformation("Outbox processor stopped");
+        logger.LogInformation("Outbox processor stopped");
     }
 
     private async Task ProcessPendingJobsAsync(CancellationToken ct)
     {
-        using IServiceScope scope = _scopeFactory.CreateScope();
+        using IServiceScope scope = scopeFactory.CreateScope();
         TContext context = scope.ServiceProvider.GetRequiredService<TContext>();
         IJobQueue? redisQueue = scope.ServiceProvider.GetService<IJobQueue>();
 
         if (redisQueue is null)
         {
-            _logger.LogWarning("No IJobQueue registered, skipping outbox processing");
+            logger.LogWarning("No IJobQueue registered, skipping outbox processing");
             return;
         }
 
         // Get pending jobs
         List<OutboxJob> pendingJobs = await context.Set<OutboxJob>()
-            .Where(j => !j.IsProcessed && j.Attempts < _options.MaxRetryAttempts && j.CreatedAt <= DateTimeOffset.UtcNow)
+            .Where(j => !j.IsProcessed && j.Attempts < options.MaxRetryAttempts && j.CreatedAt <= DateTimeOffset.UtcNow)
             .OrderBy(j => j.CreatedAt)
-            .Take(_options.BatchSize)
+            .Take(options.BatchSize)
             .ToListAsync(ct);
 
         if (pendingJobs.Count == 0)
@@ -104,7 +93,7 @@ public class OutboxProcessor<TContext> : BackgroundService where TContext : DbCo
             return;
         }
 
-        _logger.LogDebug("Processing {Count} outbox jobs", pendingJobs.Count);
+        logger.LogDebug("Processing {Count} outbox jobs", pendingJobs.Count);
 
         // Batch enqueue to Redis
         IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobsToEnqueue = pendingJobs.Select(j => (
@@ -126,7 +115,7 @@ public class OutboxProcessor<TContext> : BackgroundService where TContext : DbCo
             }
 
             await context.SaveChangesAsync(ct);
-            _logger.LogInformation("Successfully pushed {Count} jobs from outbox to Redis", pendingJobs.Count);
+            logger.LogInformation("Successfully pushed {Count} jobs from outbox to Redis", pendingJobs.Count);
         }
         catch (Exception ex)
         {
@@ -138,21 +127,21 @@ public class OutboxProcessor<TContext> : BackgroundService where TContext : DbCo
             }
 
             await context.SaveChangesAsync(ct);
-            _logger.LogWarning(ex, "Failed to push outbox jobs to Redis, will retry");
+            logger.LogWarning(ex, "Failed to push outbox jobs to Redis, will retry");
         }
     }
 
     private async Task CleanupProcessedJobsAsync(CancellationToken ct)
     {
-        if (_options.RetentionPeriod is null)
+        if (options.RetentionPeriod is null)
         {
             return;
         }
 
-        using IServiceScope scope = _scopeFactory.CreateScope();
+        using IServiceScope scope = scopeFactory.CreateScope();
         TContext context = scope.ServiceProvider.GetRequiredService<TContext>();
 
-        DateTimeOffset cutoff = DateTimeOffset.UtcNow - _options.RetentionPeriod.Value;
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow - options.RetentionPeriod.Value;
 
         int deleted = await context.Set<OutboxJob>()
             .Where(j => j.IsProcessed && j.ProcessedAt < cutoff)
@@ -160,7 +149,7 @@ public class OutboxProcessor<TContext> : BackgroundService where TContext : DbCo
 
         if (deleted > 0)
         {
-            _logger.LogInformation("Cleaned up {Count} processed outbox jobs", deleted);
+            logger.LogInformation("Cleaned up {Count} processed outbox jobs", deleted);
         }
     }
 }

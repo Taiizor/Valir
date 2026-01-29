@@ -1,3 +1,4 @@
+using System.Text;
 using Testcontainers.RabbitMq;
 using Valir.Abstractions;
 using Valir.Brokers.RabbitMQ;
@@ -47,7 +48,7 @@ public class RabbitMQIntegrationTests : IAsyncLifetime
         EventEnvelope envelope = new(
             Id: Guid.CreateVersion7().ToString(),
             Topic: "test-topic",
-            Payload: System.Text.Encoding.UTF8.GetBytes("""{"message":"hello from rabbit"}"""),
+            Payload: Encoding.UTF8.GetBytes("""{"message":"hello from rabbit"}"""),
             PublishedAt: DateTimeOffset.UtcNow
         );
 
@@ -69,7 +70,7 @@ public class RabbitMQIntegrationTests : IAsyncLifetime
         EventEnvelope envelope = new(
             Id: Guid.CreateVersion7().ToString(),
             Topic: topic,
-            Payload: System.Text.Encoding.UTF8.GetBytes("""{"test":"rabbit-data"}"""),
+            Payload: Encoding.UTF8.GetBytes("""{"test":"rabbit-data"}"""),
             PublishedAt: DateTimeOffset.UtcNow
         );
 
@@ -86,15 +87,15 @@ public class RabbitMQIntegrationTests : IAsyncLifetime
                 },
                 cts.Token
             );
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Give subscriber time to start and create queue
-        await Task.Delay(2000);
+        await Task.Delay(2000, TestContext.Current.CancellationToken);
 
         await _broker.PublishAsync(topic, envelope);
 
         // Assert
-        EventEnvelope received = await receivedEnvelope.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        EventEnvelope received = await receivedEnvelope.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         Assert.Equal(envelope.Id, received.Id);
         Assert.Equal(envelope.Topic, received.Topic);
     }

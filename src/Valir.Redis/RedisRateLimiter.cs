@@ -6,27 +6,18 @@ namespace Valir.Redis;
 /// <summary>
 /// Redis-backed rate limiter using sliding window algorithm.
 /// </summary>
-public sealed class RedisRateLimiter : IRateLimiter
+/// <remarks>
+/// Initializes a new instance of the RedisRateLimiter.
+/// </remarks>
+/// <param name="redis">Redis connection.</param>
+/// <param name="keyPrefix">Prefix for rate limit keys.</param>
+public sealed class RedisRateLimiter(IConnectionMultiplexer redis, string keyPrefix = "valir:rate:") : IRateLimiter
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly string _keyPrefix;
-
-    /// <summary>
-    /// Initializes a new instance of the RedisRateLimiter.
-    /// </summary>
-    /// <param name="redis">Redis connection.</param>
-    /// <param name="keyPrefix">Prefix for rate limit keys.</param>
-    public RedisRateLimiter(IConnectionMultiplexer redis, string keyPrefix = "valir:rate:")
-    {
-        _redis = redis;
-        _keyPrefix = keyPrefix;
-    }
-
     /// <inheritdoc />
     public async Task<bool> AllowAsync(string key, int max, TimeSpan window)
     {
-        IDatabase db = _redis.GetDatabase();
-        string rateKey = _keyPrefix + key;
+        IDatabase db = redis.GetDatabase();
+        string rateKey = keyPrefix + key;
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         long windowStart = now - (long)window.TotalMilliseconds;
 

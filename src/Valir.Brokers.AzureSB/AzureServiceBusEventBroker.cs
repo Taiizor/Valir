@@ -6,23 +6,16 @@ namespace Valir.Brokers.AzureSB;
 /// <summary>
 /// Azure Service Bus implementation of IEventBroker.
 /// </summary>
-public sealed class AzureServiceBusEventBroker : IEventBroker, IAsyncDisposable
+/// <remarks>
+/// Initializes a new instance of the AzureServiceBusEventBroker.
+/// </remarks>
+/// <param name="options">Configuration options.</param>
+public sealed class AzureServiceBusEventBroker(AzureServiceBusOptions options) : IEventBroker, IAsyncDisposable
 {
-    private readonly AzureServiceBusOptions _options;
-    private readonly ServiceBusClient _client;
+    private readonly ServiceBusClient _client = new(options.ConnectionString);
     private readonly Dictionary<string, ServiceBusSender> _senders = [];
     private readonly Dictionary<string, ServiceBusProcessor> _processors = [];
-    private readonly object _lock = new();
-
-    /// <summary>
-    /// Initializes a new instance of the AzureServiceBusEventBroker.
-    /// </summary>
-    /// <param name="options">Configuration options.</param>
-    public AzureServiceBusEventBroker(AzureServiceBusOptions options)
-    {
-        _options = options;
-        _client = new ServiceBusClient(options.ConnectionString);
-    }
+    private readonly Lock _lock = new();
 
     /// <inheritdoc />
     public async Task PublishAsync(string topic, EventEnvelope envelope)
@@ -57,10 +50,10 @@ public sealed class AzureServiceBusEventBroker : IEventBroker, IAsyncDisposable
             subscriptionId,
             new ServiceBusProcessorOptions
             {
-                MaxConcurrentCalls = _options.MaxConcurrentCalls,
+                MaxConcurrentCalls = options.MaxConcurrentCalls,
                 AutoCompleteMessages = false,
-                PrefetchCount = _options.PrefetchCount,
-                MaxAutoLockRenewalDuration = _options.MaxAutoLockRenewalDuration
+                PrefetchCount = options.PrefetchCount,
+                MaxAutoLockRenewalDuration = options.MaxAutoLockRenewalDuration
             });
 
         processor.ProcessMessageAsync += async args =>
@@ -111,7 +104,7 @@ public sealed class AzureServiceBusEventBroker : IEventBroker, IAsyncDisposable
         }
         finally
         {
-            await processor.StopProcessingAsync();
+            await processor.StopProcessingAsync(ct);
         }
     }
 

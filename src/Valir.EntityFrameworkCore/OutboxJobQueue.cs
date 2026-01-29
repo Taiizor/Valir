@@ -60,18 +60,18 @@ public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
         IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobs,
         int priority = 0)
     {
-        List<OutboxJob> outboxJobs = jobs.Select(j => new OutboxJob
+        List<OutboxJob> outboxJobs = [.. jobs.Select(j => new OutboxJob
         {
             Type = j.type,
             PayloadBase64 = Convert.ToBase64String(j.payload),
             Priority = priority,
             IdempotencyKey = j.idempotencyKey,
             CreatedAt = DateTimeOffset.UtcNow
-        }).ToList();
+        })];
 
         _context.Set<OutboxJob>().AddRange(outboxJobs);
 
-        return outboxJobs.Select(j => j.JobId).ToArray();
+        return [.. outboxJobs.Select(j => j.JobId)];
     }
 
     // These operations delegate to the inner queue (Redis)

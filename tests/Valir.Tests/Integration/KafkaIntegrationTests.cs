@@ -72,7 +72,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         await _broker.PublishAsync(topic, envelope);
 
         // Wait for topic metadata propagation
-        await Task.Delay(3000);
+        await Task.Delay(3000, TestContext.Current.CancellationToken);
 
         // Act - Start subscription in background
         _ = Task.Run(async () =>
@@ -87,10 +87,10 @@ public class KafkaIntegrationTests : IAsyncLifetime
                 },
                 cts.Token
             );
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Give consumer time to join group and rebalance
-        await Task.Delay(5000);
+        await Task.Delay(5000, TestContext.Current.CancellationToken);
 
         // Publish again after consumer is ready
         EventEnvelope secondEnvelope = new(
@@ -102,7 +102,7 @@ public class KafkaIntegrationTests : IAsyncLifetime
         await _broker.PublishAsync(topic, secondEnvelope);
 
         // Assert
-        EventEnvelope received = await receivedEnvelope.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        EventEnvelope received = await receivedEnvelope.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
         Assert.NotNull(received);
         Assert.Equal(topic, received.Topic);
     }

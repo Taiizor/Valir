@@ -12,7 +12,7 @@ public sealed class KafkaEventBroker : IEventBroker, IAsyncDisposable
     private readonly KafkaOptions _options;
     private readonly IProducer<string, byte[]> _producer;
     private readonly Dictionary<string, IConsumer<string, byte[]>> _consumers = [];
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Initializes a new instance of the KafkaEventBroker.

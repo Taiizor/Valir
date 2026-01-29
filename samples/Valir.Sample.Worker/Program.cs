@@ -111,14 +111,9 @@ static Task DemoHandler(JobEnvelope job, JobContext ctx)
     return Task.CompletedTask;
 }
 
-internal sealed class WorkerHostedService : IHostedService
+internal sealed class WorkerHostedService(IJobQueue queue, ValirOptions options) : IHostedService
 {
-    private readonly WorkerRuntime _worker;
-
-    public WorkerHostedService(IJobQueue queue, ValirOptions options)
-    {
-        _worker = new WorkerRuntime(queue, DemoHandler, options);
-    }
+    private readonly WorkerRuntime _worker = new(queue, DemoHandler, options);
 
     public Task StartAsync(CancellationToken ct)
     {

@@ -7,46 +7,36 @@ namespace Valir.Redis;
 /// Redis-backed distributed lock implementation.
 /// Uses SET NX PX for atomic acquire with TTL.
 /// </summary>
-public sealed class RedisDistributedLock : IDistributedLock
+/// <remarks>
+/// Initializes a new instance of the RedisDistributedLock.
+/// </remarks>
+/// <param name="redis">Redis connection.</param>
+/// <param name="key">Lock key.</param>
+/// <param name="owner">Lock owner identity.</param>
+/// <param name="keyPrefix">Key prefix.</param>
+public sealed class RedisDistributedLock(
+    IConnectionMultiplexer redis,
+    string key,
+    string owner,
+    string keyPrefix = "valir:lock:") : IDistributedLock
 {
-    private readonly IConnectionMultiplexer _redis;
-    private readonly string _keyPrefix;
     private bool _disposed;
 
     /// <summary>
     /// The key being locked.
     /// </summary>
-    public string Key { get; }
+    public string Key { get; } = key;
 
     /// <summary>
     /// The identity of the lock owner.
     /// </summary>
-    public string Owner { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the RedisDistributedLock.
-    /// </summary>
-    /// <param name="redis">Redis connection.</param>
-    /// <param name="key">Lock key.</param>
-    /// <param name="owner">Lock owner identity.</param>
-    /// <param name="keyPrefix">Key prefix.</param>
-    public RedisDistributedLock(
-        IConnectionMultiplexer redis,
-        string key,
-        string owner,
-        string keyPrefix = "valir:lock:")
-    {
-        _redis = redis;
-        Key = key;
-        Owner = owner;
-        _keyPrefix = keyPrefix;
-    }
+    public string Owner { get; } = owner;
 
     /// <inheritdoc />
     public async Task<bool> AcquireAsync(TimeSpan ttl)
     {
-        IDatabase db = _redis.GetDatabase();
-        string lockKey = _keyPrefix + Key;
+        IDatabase db = redis.GetDatabase();
+        string lockKey = keyPrefix + Key;
 
         return await db.StringSetAsync(lockKey, Owner, ttl, When.NotExists);
     }
@@ -54,8 +44,8 @@ public sealed class RedisDistributedLock : IDistributedLock
     /// <inheritdoc />
     public async Task<bool> ExtendAsync(TimeSpan ttl)
     {
-        IDatabase db = _redis.GetDatabase();
-        string lockKey = _keyPrefix + Key;
+        IDatabase db = redis.GetDatabase();
+        string lockKey = keyPrefix + Key;
 
         // Verify ownership before extending
         string script = """
@@ -79,8 +69,8 @@ public sealed class RedisDistributedLock : IDistributedLock
     /// <inheritdoc />
     public async Task ReleaseAsync()
     {
-        IDatabase db = _redis.GetDatabase();
-        string lockKey = _keyPrefix + Key;
+        IDatabase db = redis.GetDatabase();
+        string lockKey = keyPrefix + Key;
 
         // Only release if we're the owner
         string script = """

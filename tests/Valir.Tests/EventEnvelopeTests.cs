@@ -9,7 +9,7 @@ public class EventEnvelopeTests
     {
         string id = "event-123";
         string topic = "orders.created";
-        byte[] payload = new byte[] { 4, 5, 6 };
+        byte[] payload = [4, 5, 6];
         DateTimeOffset publishedAt = DateTimeOffset.UtcNow;
 
         EventEnvelope envelope = new(
@@ -42,7 +42,7 @@ public class EventEnvelopeTests
     public void EventEnvelope_EqualityByValue()
     {
         DateTimeOffset publishedAt = DateTimeOffset.UtcNow;
-        byte[] payload = new byte[] { 1, 2, 3 };
+        byte[] payload = [1, 2, 3];
 
         EventEnvelope envelope1 = new("id", "topic", payload, publishedAt);
         EventEnvelope envelope2 = new("id", "topic", payload, publishedAt);

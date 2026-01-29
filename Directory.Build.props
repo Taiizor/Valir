@@ -12,9 +12,9 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
         <!-- Package Metadata -->
+        <Product>Valir</Product>
         <Authors>Taiizor</Authors>
         <Company>Taiizor</Company>
-        <Product>Valir</Product>
         <Copyright>Copyright © 2026 Taiizor. All rights reserved.</Copyright>
 
         <!-- NuGet Package -->
@@ -24,7 +24,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/Taiizor/Valir</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>background-jobs;distributed;redis;queue;event-bus;kafka;rabbitmq;azure-service-bus;dotnet;worker;job-scheduler;message-queue</PackageTags>
+        <PackageTags>background-jobs;distributed;redis;dragonfly;garnet;queue;event-bus;kafka;rabbitmq;azure-service-bus;dotnet;worker;job-scheduler;message-queue;valir</PackageTags>
         <PackageReleaseNotes>https://github.com/Taiizor/Valir/releases</PackageReleaseNotes>
 
         <!-- Source Link -->

@@ -9,7 +9,7 @@ public class JobEnvelopeTests
     {
         string id = "job-123";
         string type = "send-email";
-        byte[] payload = new byte[] { 1, 2, 3 };
+        byte[] payload = [1, 2, 3];
         int attempts = 2;
         int maxAttempts = 5;
         DateTimeOffset createdAt = DateTimeOffset.UtcNow;
@@ -61,7 +61,7 @@ public class JobEnvelopeTests
     public void JobEnvelope_EqualityByValue()
     {
         DateTimeOffset createdAt = DateTimeOffset.UtcNow;
-        byte[] payload = new byte[] { 1, 2, 3 };
+        byte[] payload = [1, 2, 3];
         TimeSpan visibilityTimeout = TimeSpan.FromSeconds(30);
 
         JobEnvelope envelope1 = new("id", "type", payload, 0, 3, createdAt, visibilityTimeout);
