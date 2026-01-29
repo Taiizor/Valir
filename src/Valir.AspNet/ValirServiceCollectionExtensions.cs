@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
 using Valir.Abstractions;
 using Valir.Core;

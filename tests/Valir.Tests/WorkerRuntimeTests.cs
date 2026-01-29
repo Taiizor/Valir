@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using Microsoft.Extensions.Logging.Abstractions;
 using Valir.Abstractions;
 using Valir.Core;
 
@@ -51,8 +50,8 @@ public class WorkerRuntimeTests
     [Fact]
     public void Constructor_GeneratesUniqueWorkerId()
     {
-        var runtime1 = new WorkerRuntime(_fakeQueue, (_, _) => Task.CompletedTask, _options);
-        var runtime2 = new WorkerRuntime(_fakeQueue, (_, _) => Task.CompletedTask, _options);
+        WorkerRuntime runtime1 = new(_fakeQueue, (_, _) => Task.CompletedTask, _options);
+        WorkerRuntime runtime2 = new(_fakeQueue, (_, _) => Task.CompletedTask, _options);
 
         Assert.NotEqual(runtime1.WorkerId, runtime2.WorkerId);
         Assert.StartsWith("worker-", runtime1.WorkerId);
@@ -62,7 +61,7 @@ public class WorkerRuntimeTests
     public void Constructor_WithCustomWorkerId_UsesProvidedId()
     {
         string customId = "custom-worker-123";
-        var runtime = new WorkerRuntime(_fakeQueue, (_, _) => Task.CompletedTask, _options, customId);
+        WorkerRuntime runtime = new(_fakeQueue, (_, _) => Task.CompletedTask, _options, customId);
 
         Assert.Equal(customId, runtime.WorkerId);
     }
@@ -71,23 +70,23 @@ public class WorkerRuntimeTests
     public async Task StartAsync_BeginsProcessingJobs()
     {
         // Arrange
-        var jobProcessed = new TaskCompletionSource<bool>();
-        var runtime = new WorkerRuntime(_fakeQueue, (_, _) =>
+        TaskCompletionSource<bool> jobProcessed = new();
+        WorkerRuntime runtime = new(_fakeQueue, (_, _) =>
         {
             jobProcessed.SetResult(true);
             return Task.CompletedTask;
         }, _options);
 
-        var job = CreateTestJob("test-job-1");
+        JobEnvelope job = CreateTestJob("test-job-1");
         await _fakeQueue.EnqueueAsync(job);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await runtime.StartAsync(cts.Token);
 
         // Wait for job to be processed
-        var completed = await Task.WhenAny(jobProcessed.Task, Task.Delay(TimeSpan.FromSeconds(3), cts.Token));
+        Task completed = await Task.WhenAny(jobProcessed.Task, Task.Delay(TimeSpan.FromSeconds(3), cts.Token));
 
         // Assert
         Assert.True(jobProcessed.Task.IsCompletedSuccessfully);
@@ -101,26 +100,26 @@ public class WorkerRuntimeTests
     public async Task StopAsync_WaitsForActiveJobs()
     {
         // Arrange
-        var jobStarted = new TaskCompletionSource<bool>();
-        var jobCanComplete = new TaskCompletionSource<bool>();
+        TaskCompletionSource<bool> jobStarted = new();
+        TaskCompletionSource<bool> jobCanComplete = new();
 
-        var runtime = new WorkerRuntime(_fakeQueue, async (_, _) =>
+        WorkerRuntime runtime = new(_fakeQueue, async (_, _) =>
         {
             jobStarted.SetResult(true);
             await jobCanComplete.Task;
         }, _options);
 
-        var job = CreateTestJob("slow-job");
+        JobEnvelope job = CreateTestJob("slow-job");
         await _fakeQueue.EnqueueAsync(job);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await runtime.StartAsync(cts.Token);
 
         // Wait for job to start
         await jobStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
 
         // Act - Start shutdown while job is still processing
-        var stopTask = runtime.StopAsync(CancellationToken.None);
+        Task stopTask = runtime.StopAsync(CancellationToken.None);
 
         // Give stop a moment to begin
         await Task.Delay(100);
@@ -141,17 +140,17 @@ public class WorkerRuntimeTests
     public async Task Processor_JobHandlerThrows_MarksJobAsFailed()
     {
         // Arrange
-        var jobFailed = new TaskCompletionSource<bool>();
-        var runtime = new WorkerRuntime(_fakeQueue, (_, _) =>
+        TaskCompletionSource<bool> jobFailed = new();
+        WorkerRuntime runtime = new(_fakeQueue, (_, _) =>
         {
             jobFailed.SetResult(true);
             throw new InvalidOperationException("Test exception");
         }, _options);
 
-        var job = CreateTestJob("failing-job");
+        JobEnvelope job = CreateTestJob("failing-job");
         await _fakeQueue.EnqueueAsync(job);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await runtime.StartAsync(cts.Token);
@@ -173,12 +172,12 @@ public class WorkerRuntimeTests
         // Arrange
         int concurrentJobs = 0;
         int maxConcurrentJobs = 0;
-        var semaphore = new SemaphoreSlim(_options.Concurrency);
-        var allJobsStarted = new TaskCompletionSource<bool>();
-        var jobsStarted = 0;
+        SemaphoreSlim semaphore = new(_options.Concurrency);
+        TaskCompletionSource<bool> allJobsStarted = new();
+        int jobsStarted = 0;
         const int totalJobs = 4;
 
-        var runtime = new WorkerRuntime(_fakeQueue, async (_, _) =>
+        WorkerRuntime runtime = new(_fakeQueue, async (_, _) =>
         {
             await semaphore.WaitAsync();
             try
@@ -206,7 +205,7 @@ public class WorkerRuntimeTests
             await _fakeQueue.EnqueueAsync(CreateTestJob($"job-{i}"));
         }
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
 
         // Act
         await runtime.StartAsync(cts.Token);
@@ -224,12 +223,12 @@ public class WorkerRuntimeTests
     public async Task ClaimLoop_EmptyQueue_AppliesBackoff()
     {
         // Arrange
-        var claimAttempts = 0;
-        var runtime = new WorkerRuntime(_fakeQueue, (_, _) => Task.CompletedTask, _options);
+        int claimAttempts = 0;
+        WorkerRuntime runtime = new(_fakeQueue, (_, _) => Task.CompletedTask, _options);
 
         _fakeQueue.OnClaimAttempt = () => Interlocked.Increment(ref claimAttempts);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(500));
 
         // Act
         await runtime.StartAsync(cts.Token);
@@ -246,9 +245,9 @@ public class WorkerRuntimeTests
     public async Task DisposeAsync_CancelsAndDisposesResources()
     {
         // Arrange
-        var runtime = new WorkerRuntime(_fakeQueue, (_, _) => Task.CompletedTask, _options);
+        WorkerRuntime runtime = new(_fakeQueue, (_, _) => Task.CompletedTask, _options);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await runtime.StartAsync(cts.Token);
 
         // Act
@@ -301,7 +300,7 @@ internal sealed class FakeJobQueue : IJobQueue
         string? idempotencyKey = null,
         CancellationToken ct = default)
     {
-        var job = new JobEnvelope(
+        JobEnvelope job = new(
             Guid.CreateVersion7().ToString("N"),
             type,
             payload,
@@ -320,8 +319,8 @@ internal sealed class FakeJobQueue : IJobQueue
         int priority = 0,
         CancellationToken ct = default)
     {
-        var jobIds = new List<string>();
-        foreach (var (type, payload, idempotencyKey) in jobs)
+        List<string> jobIds = [];
+        foreach ((string? type, byte[]? payload, string? idempotencyKey) in jobs)
         {
             jobIds.Add(EnqueueAsync(type, payload, null, priority, idempotencyKey, ct).Result);
         }
@@ -332,7 +331,7 @@ internal sealed class FakeJobQueue : IJobQueue
     {
         OnClaimAttempt?.Invoke();
 
-        if (_jobs.Reader.TryRead(out var job))
+        if (_jobs.Reader.TryRead(out JobEnvelope? job))
         {
             _activeJobs[job.Id] = job;
             return Task.FromResult<JobEnvelope?>(job);
@@ -357,7 +356,7 @@ internal sealed class FakeJobQueue : IJobQueue
 
     public Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default)
     {
-        if (_activeJobs.TryGetValue(jobId, out var job))
+        if (_activeJobs.TryGetValue(jobId, out JobEnvelope? job))
         {
             _activeJobs.Remove(jobId);
             _releasedJobs.Add(jobId);

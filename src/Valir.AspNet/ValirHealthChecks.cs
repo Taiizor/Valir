@@ -121,7 +121,7 @@ public sealed class JobQueueHealthCheck : IHealthCheck
 
             // Get queue statistics if possible
             IDatabase db = _redis.GetDatabase();
-            var data = new Dictionary<string, object>
+            Dictionary<string, object> data = new()
             {
                 ["queueOperational"] = true,
                 ["redisConnected"] = _redis.IsConnected,
@@ -175,8 +175,8 @@ public sealed class ValirHealthCheck : IHealthCheck
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(_timeout);
 
-        var checks = new Dictionary<string, string>();
-        var data = new Dictionary<string, object>();
+        Dictionary<string, string> checks = [];
+        Dictionary<string, object> data = [];
         bool isHealthy = true;
         bool isDegraded = false;
 
