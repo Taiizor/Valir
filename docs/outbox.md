@@ -113,32 +113,21 @@ public class OrderService
 
 ## How It Works
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Transaction                          │
-│  ┌─────────────┐    ┌─────────────┐                        │
-│  │   Orders    │    │  OutboxJob  │                        │
-│  │  (INSERT)   │    │  (INSERT)   │                        │
-│  └─────────────┘    └─────────────┘                        │
-│                           │                                 │
-│                    SaveChangesAsync()                       │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-                            ▼
-                  ┌─────────────────┐
-                  │ OutboxProcessor │ (Background Service)
-                  └────────┬────────┘
-                           │
-              ┌────────────▼────────────┐
-              │ SELECT FROM OutboxJobs  │
-              │ WHERE ProcessedAt IS NULL│
-              └────────────┬────────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  Redis Queue    │
-                  │  (Enqueue)      │
-                  └─────────────────┘
+```mermaid
+graph TB
+    subgraph Transaction["📦 Database Transaction"]
+        A[("Orders<br/>(INSERT)")] 
+        B[("OutboxJob<br/>(INSERT)")]
+    end
+    
+    A --> C[SaveChangesAsync]
+    B --> C
+    
+    C --> D["OutboxProcessor<br/>(Background Service)"]
+    
+    D --> E["SELECT FROM OutboxJobs<br/>WHERE ProcessedAt IS NULL"]
+    
+    E --> F[("Redis Queue<br/>(Enqueue)")]
 ```
 
 ## OutboxJob Schema

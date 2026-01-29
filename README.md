@@ -142,17 +142,29 @@ dotnet run --project samples/Valir.Sample.Worker -- --redis localhost:6379 --con
 
 ## Architecture
 
-```
-┌─────────────┐    ┌───────────────┐    ┌─────────────┐
-│   Web API   │───▶│     Redis     │◀───│   Worker    │
-│  (Producer) │    │ (Job Queue)   │    │ (Consumer)  │
-└─────────────┘    └───────────────┘    └─────────────┘
-       │                                       │
-       ▼                                       ▼
-┌─────────────┐                        ┌─────────────┐
-│  Event Bus  │                        │   Handler   │
-│ Kafka/RMQ   │                        │ (Your Code) │
-└─────────────┘                        └─────────────┘
+```mermaid
+graph LR
+    subgraph Producer
+        A[Web API]
+    end
+    
+    subgraph Storage
+        B[(Redis<br/>Job Queue)]
+    end
+    
+    subgraph Consumer
+        C[Worker]
+        D[Handler<br/>Your Code]
+    end
+    
+    subgraph Events
+        E[Event Bus<br/>Kafka/RMQ/Azure]
+    end
+    
+    A -->|Enqueue| B
+    B -->|Claim| C
+    C --> D
+    A -->|Publish| E
 ```
 
 ## Configuration
