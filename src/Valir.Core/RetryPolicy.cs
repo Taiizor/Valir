@@ -5,8 +5,6 @@ namespace Valir.Core;
 /// </summary>
 public static class RetryPolicy
 {
-    private static readonly Random Jitter = new();
-
     /// <summary>
     /// Calculate the delay for the next retry attempt.
     /// Uses exponential backoff: baseDelay * 2^attempt + random jitter.
@@ -18,7 +16,7 @@ public static class RetryPolicy
     public static TimeSpan CalculateDelay(int attempt, TimeSpan baseDelay, TimeSpan? maxDelay = null)
     {
         double exponentialMs = baseDelay.TotalMilliseconds * Math.Pow(2, attempt);
-        int jitterMs = Jitter.Next(0, (int)(baseDelay.TotalMilliseconds * 0.25));
+        int jitterMs = Random.Shared.Next(0, (int)(baseDelay.TotalMilliseconds * 0.25));
         double totalMs = exponentialMs + jitterMs;
 
         TimeSpan max = maxDelay ?? TimeSpan.FromMinutes(30);
