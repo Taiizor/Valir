@@ -90,12 +90,41 @@ app.MapPost("/send-email", async (IJobQueue queue, EmailRequest req) =>
 
 ### Consumer (Worker)
 
-```bash
-# Run with TUI
-dotnet run --project samples/Valir.Sample.Worker -- --redis localhost:6379 --concurrency 4
+```csharp
+// Define your job handler
+public class EmailJobHandler : IJobWorker
+{
+    public string JobType => "send-email";
 
-# Run headless
-dotnet run --project samples/Valir.Sample.Worker -- --redis localhost:6379 --headless
+    public async Task ExecuteAsync(JobEnvelope job, CancellationToken ct)
+    {
+        var request = JsonSerializer.Deserialize<EmailRequest>(job.Payload);
+        
+        // Process the job
+        await SendEmailAsync(request, ct);
+        
+        Console.WriteLine($"Email sent to {request.Email}");
+    }
+}
+
+// Program.cs - Register and run
+builder.Services.AddValir(options =>
+{
+    options.RedisConnectionString = "localhost:6379";
+    options.Concurrency = 4;
+});
+
+builder.Services.AddSingleton<IJobWorker, EmailJobHandler>();
+
+// Start worker runtime
+var worker = app.Services.GetRequiredService<WorkerRuntime>();
+await worker.RunAsync();
+```
+
+Or use the sample worker with TUI:
+
+```bash
+dotnet run --project samples/Valir.Sample.Worker -- --redis localhost:6379 --concurrency 4
 ```
 
 ## Packages

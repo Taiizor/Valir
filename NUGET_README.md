@@ -42,8 +42,29 @@ app.MapPost("/jobs", async (IJobQueue queue) =>
 
 ### Run the Worker
 
-```bash
-dotnet run --project samples/Valir.Sample.Worker -- --redis localhost:6379
+```csharp
+// Define your job handler
+public class EmailJobHandler : IJobWorker
+{
+    public string JobType => "send-email";
+
+    public async Task ExecuteAsync(JobEnvelope job, CancellationToken ct)
+    {
+        var data = JsonSerializer.Deserialize<EmailData>(job.Payload);
+        await SendEmailAsync(data, ct);
+    }
+}
+
+// Register and run
+builder.Services.AddValir(options =>
+{
+    options.RedisConnectionString = "localhost:6379";
+});
+
+builder.Services.AddSingleton<IJobWorker, EmailJobHandler>();
+
+var worker = app.Services.GetRequiredService<WorkerRuntime>();
+await worker.RunAsync();
 ```
 
 ## Packages
