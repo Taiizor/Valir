@@ -12,65 +12,109 @@ Primary interface for job queue operations.
 public interface IJobQueue
 {
     /// <summary>
-    /// Enqueue a single job.
+    /// Enqueue a single job with optional delay and priority.
     /// </summary>
-    /// <param name="type">Job type identifier</param>
-    /// <param name="payload">Serialized job payload</param>
-    /// <param name="priority">Priority (higher = first)</param>
-    /// <param name="queue">Queue name</param>
-    /// <param name="delayUntil">Delay execution until</param>
-    /// <param name="idempotencyKey">Deduplication key</param>
-    /// <returns>Job ID</returns>
+    /// <param name="type">Job type name for handler routing.</param>
+    /// <param name="payload">Serialized job payload.</param>
+    /// <param name="delay">Optional delay before job becomes visible.</param>
+    /// <param name="priority">Job priority (0 = default, higher = faster).</param>
+    /// <param name="idempotencyKey">Optional key for deduplication.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>The generated job ID.</returns>
     Task<string> EnqueueAsync(
         string type,
         byte[] payload,
+        TimeSpan? delay = null,
         int priority = 0,
-        string queue = "default",
-        DateTimeOffset? delayUntil = null,
-        string? idempotencyKey = null);
+        string? idempotencyKey = null,
+        CancellationToken ct = default);
 
     /// <summary>
-    /// Enqueue multiple jobs in a batch.
+    /// Batch enqueue multiple jobs for high-throughput scenarios.
+    /// Uses Redis pipelining for performance (50x-100x faster than individual calls).
     /// </summary>
-    Task<IReadOnlyList<string>> EnqueueBatchAsync(
-        IEnumerable<JobEnvelope> jobs);
+    /// <param name="jobs">Collection of job definitions.</param>
+    /// <param name="priority">Priority for all jobs in the batch.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>Array of generated job IDs.</returns>
+    Task<string[]> EnqueueBatchAsync(
+        IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobs,
+        int priority = 0,
+        CancellationToken ct = default);
 
     /// <summary>
-    /// Claim jobs for processing.
+    /// Claim the next available job for processing.
     /// </summary>
-    Task<IReadOnlyList<JobEnvelope>> ClaimAsync(
-        string queue,
-        int count,
-        TimeSpan visibilityTimeout);
+    /// <param name="workerId">Unique identifier of the claiming worker.</param>
+    /// <param name="claimTimeout">Duration for which the job is locked.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>Job envelope or null if no jobs available.</returns>
+    Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout, CancellationToken ct = default);
 
     /// <summary>
-    /// Mark job as completed.
+    /// Mark a job as successfully completed.
     /// </summary>
-    Task CompleteAsync(string jobId);
+    /// <param name="jobId">The job to complete.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    Task CompleteAsync(string jobId, CancellationToken ct = default);
 
     /// <summary>
-    /// Mark job as failed.
+    /// Mark a job as failed, scheduling retry or dead-letter.
     /// </summary>
-    Task FailAsync(string jobId, string? error = null);
+    /// <param name="jobId">The job that failed.</param>
+    /// <param name="reason">Failure reason for logging.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    Task FailAsync(string jobId, string reason, CancellationToken ct = default);
+
+    /// <summary>
+    /// Release a job back to the queue (e.g., during graceful shutdown).
+    /// </summary>
+    /// <param name="jobId">The job to release.</param>
+    /// <param name="delay">Optional delay before the job becomes visible again.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Atomically extend the lock TTL for a job currently being processed.
+    /// </summary>
+    /// <param name="jobId">The job to extend the lock for.</param>
+    /// <param name="workerId">Unique identifier of the worker holding the lock.</param>
+    /// <param name="extension">Duration to extend the lock by.</param>
+    /// <param name="ct">Cancellation token for the operation.</param>
+    /// <returns>True if the lock was extended successfully.</returns>
+    Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default);
 }
 ```
 
 ### JobEnvelope
 
-Job data transfer object.
+Job data transfer object containing all metadata for a background job.
 
 ```csharp
-public record JobEnvelope(
+public sealed record JobEnvelope(
     string Id,
     string Type,
     byte[] Payload,
-    string Queue,
-    int Priority,
-    int Attempt,
-    string? IdempotencyKey,
+    int Attempts,
+    int MaxAttempts,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? DelayUntil);
+    TimeSpan VisibilityTimeout,
+    string? IdempotencyKey = null,
+    int Priority = 0
+);
 ```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Id` | `string` | Unique identifier for this job instance |
+| `Type` | `string` | The job type name used for handler routing |
+| `Payload` | `byte[]` | Serialized job payload as bytes |
+| `Attempts` | `int` | Current attempt count (starts at 0) |
+| `MaxAttempts` | `int` | Maximum retry attempts before dead-lettering |
+| `CreatedAt` | `DateTimeOffset` | Timestamp when the job was enqueued |
+| `VisibilityTimeout` | `TimeSpan` | Duration for which the job is invisible after being claimed |
+| `IdempotencyKey` | `string?` | Optional key for at-least-once deduplication |
+| `Priority` | `int` | Job priority (0 = default, higher = faster processing) |
 
 ### IEventBroker
 
@@ -114,80 +158,100 @@ public record EventEnvelope(
 
 ### IDistributedLock
 
-Distributed locking interface.
+Distributed lock for coordinating access across workers.
 
 ```csharp
-public interface IDistributedLock
+public interface IDistributedLock : IAsyncDisposable
 {
     /// <summary>
-    /// Acquire a lock.
+    /// The resource key being locked.
     /// </summary>
-    /// <returns>Lock handle, or null if not acquired</returns>
-    Task<IAsyncDisposable?> AcquireAsync(
-        string resource,
-        TimeSpan expiry,
-        CancellationToken ct = default);
+    string Key { get; }
 
     /// <summary>
-    /// Extend lock expiry.
+    /// The owner identifier (typically worker ID).
     /// </summary>
-    Task<bool> ExtendAsync(
-        string resource,
-        string token,
-        TimeSpan expiry);
+    string Owner { get; }
 
     /// <summary>
-    /// Release a lock.
+    /// Attempt to acquire the lock with specified TTL.
     /// </summary>
-    Task ReleaseAsync(string resource, string token);
+    /// <param name="ttl">Time-to-live for the lock.</param>
+    /// <returns>True if lock was acquired, false if already held.</returns>
+    Task<bool> AcquireAsync(TimeSpan ttl);
+
+    /// <summary>
+    /// Extend the lock TTL (must be current owner).
+    /// </summary>
+    /// <param name="ttl">New TTL duration.</param>
+    /// <returns>True if extended, false if ownership lost.</returns>
+    Task<bool> ExtendAsync(TimeSpan ttl);
+
+    /// <summary>
+    /// Release the lock (must be current owner).
+    /// </summary>
+    Task ReleaseAsync();
 }
 ```
 
 ### IRateLimiter
 
-Rate limiting interface.
+Rate limiter for throttling operations. Implements sliding window algorithm.
 
 ```csharp
 public interface IRateLimiter
 {
     /// <summary>
-    /// Check if action is allowed under rate limit.
+    /// Check if an operation is allowed under the rate limit.
     /// </summary>
-    /// <param name="key">Rate limit key</param>
-    /// <param name="limit">Max requests</param>
-    /// <param name="window">Time window</param>
-    /// <returns>True if allowed</returns>
-    Task<bool> IsAllowedAsync(
-        string key,
-        int limit,
-        TimeSpan window);
-
-    /// <summary>
-    /// Get remaining quota.
-    /// </summary>
-    Task<int> GetRemainingAsync(
-        string key,
-        int limit,
-        TimeSpan window);
+    /// <param name="key">Rate limit key (e.g., user ID, API key).</param>
+    /// <param name="max">Maximum allowed operations in the window.</param>
+    /// <param name="window">Time window for the limit.</param>
+    /// <returns>True if allowed, false if rate limited.</returns>
+    Task<bool> AllowAsync(string key, int max, TimeSpan window);
 }
 ```
 
 ### IJobWorker
 
-Job handler interface.
+Interface for background job worker lifecycle.
 
 ```csharp
 public interface IJobWorker
 {
     /// <summary>
-    /// Job type this worker handles.
+    /// Unique identifier for this worker instance.
     /// </summary>
-    string JobType { get; }
+    string WorkerId { get; }
 
     /// <summary>
-    /// Execute the job.
+    /// Start the worker processing loop.
     /// </summary>
-    Task ExecuteAsync(JobEnvelope job, CancellationToken ct);
+    /// <param name="ct">Cancellation token for graceful shutdown.</param>
+    Task StartAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Stop the worker, draining current jobs before shutdown.
+    /// </summary>
+    /// <param name="ct">Cancellation token with shutdown timeout.</param>
+    Task StopAsync(CancellationToken ct);
+}
+```
+
+### IJobHandler<TJob>
+
+Handler contract for processing jobs of a specific type. Handlers must be idempotent for at-least-once delivery guarantees.
+
+```csharp
+public interface IJobHandler<TJob>
+{
+    /// <summary>
+    /// Process the job. Must be idempotent.
+    /// Use JobContext.LockOwnerToken as a fencing token for external writes.
+    /// </summary>
+    /// <param name="job">Deserialized job payload.</param>
+    /// <param name="context">Execution context with metadata.</param>
+    Task HandleAsync(TJob job, JobContext context);
 }
 ```
 
@@ -195,16 +259,26 @@ public interface IJobWorker
 
 ### WorkerRuntime
 
-Manages job processing lifecycle.
+Worker runtime using System.Threading.Channels for backpressure. Implements graceful shutdown (drain mode) and adaptive polling.
 
 ```csharp
-public class WorkerRuntime
+public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
 {
+    /// <summary>
+    /// Initializes a new instance of the WorkerRuntime.
+    /// </summary>
     public WorkerRuntime(
         IJobQueue queue,
-        IEnumerable<IJobWorker> workers,
+        Func<JobEnvelope, JobContext, Task> handler,
         ValirOptions options,
-        ILogger<WorkerRuntime> logger);
+        string? workerId = null,
+        ILogger<WorkerRuntime>? logger = null,
+        IValirMetrics? metrics = null);
+
+    /// <summary>
+    /// Unique identifier for this worker instance.
+    /// </summary>
+    public string WorkerId { get; }
 
     /// <summary>
     /// Start processing jobs.
@@ -214,63 +288,40 @@ public class WorkerRuntime
     /// <summary>
     /// Initiate graceful shutdown.
     /// </summary>
-    public Task StopAsync();
+    public Task StopAsync(CancellationToken ct);
 
     /// <summary>
-    /// Number of currently processing jobs.
+    /// Dispose the runtime and release resources.
     /// </summary>
-    public int ActiveJobs { get; }
-
-    /// <summary>
-    /// Whether in drain mode.
-    /// </summary>
-    public bool IsDraining { get; }
+    public ValueTask DisposeAsync();
 }
 ```
 
 ### RetryPolicy
 
-Retry calculation with exponential backoff.
+Calculates retry delays using exponential backoff with jitter.
 
 ```csharp
 public static class RetryPolicy
 {
     /// <summary>
-    /// Calculate delay for next retry.
+    /// Calculate the delay for the next retry attempt.
+    /// Uses exponential backoff: baseDelay * 2^attempt + random jitter.
     /// </summary>
-    public static TimeSpan CalculateDelay(
-        int attempt,
-        TimeSpan baseDelay,
-        TimeSpan? maxDelay = null);
-
-    /// <summary>
-    /// Check if should retry.
-    /// </summary>
-    public static bool ShouldRetry(int attempt, int maxAttempts);
+    /// <param name="attempt">Current attempt number (0-based).</param>
+    /// <param name="baseDelay">Base delay duration.</param>
+    /// <param name="maxDelay">Maximum delay cap.</param>
+    /// <returns>Delay before next retry.</returns>
+    public static TimeSpan CalculateDelay(int attempt, TimeSpan baseDelay, TimeSpan? maxDelay = null);
 }
 ```
 
-### JobStateMachine
+Formula: `baseDelay × 2^attempt + random(0, baseDelay × 0.25)`
 
-Job state transitions.
-
-```csharp
-public enum JobState
-{
-    Pending,
-    Scheduled,
-    Processing,
-    Completed,
-    Failed,
-    DeadLetter
-}
-
-public static class JobStateMachine
-{
-    public static bool CanTransition(JobState from, JobState to);
-    public static JobState GetNextState(JobState current, bool success);
-}
-```
+Example delays with 10s base:
+- Attempt 1: 10-12.5s
+- Attempt 2: 20-22.5s
+- Attempt 3: 40-42.5s
 
 ## Valir.AspNet
 
@@ -280,11 +331,34 @@ public static class JobStateMachine
 public static class ValirServiceCollectionExtensions
 {
     /// <summary>
-    /// Add Valir services with Redis backend.
+    /// Add Valir services to the DI container.
     /// </summary>
     public static IServiceCollection AddValir(
         this IServiceCollection services,
         Action<ValirOptions>? configure = null);
+
+    /// <summary>
+    /// Add Valir job queue only (for producer applications).
+    /// </summary>
+    public static IServiceCollection AddValirQueue(
+        this IServiceCollection services,
+        string redisConnectionString,
+        Action<ConfigurationOptions>? configureOptions = null);
+
+    /// <summary>
+    /// Add Valir with custom Redis configuration options.
+    /// </summary>
+    public static IServiceCollection AddValirWithRedisOptions(
+        this IServiceCollection services,
+        Action<ConfigurationOptions> configureOptions,
+        Action<ValirOptions>? configureValir = null);
+
+    /// <summary>
+    /// Add Valir health checks to the DI container.
+    /// </summary>
+    public static IHealthChecksBuilder AddValirHealthChecks(
+        this IHealthChecksBuilder builder,
+        string[]? tags = null);
 }
 ```
 
@@ -297,6 +371,17 @@ public static class ValirTelemetry
 {
     public static readonly string SourceName = "Valir";
     public static readonly ActivitySource Source;
+
+    /// <summary>
+    /// Start an activity for job enqueue operation.
+    /// </summary>
+    public static Activity? StartEnqueue(string jobType);
+
+    /// <summary>
+    /// Start an activity for job processing.
+    /// </summary>
+    public static Activity? StartProcessing(string jobId, string jobType);
+}
 
     public static Activity? StartJobActivity(JobEnvelope job);
     public static void RecordSuccess(Activity? activity);

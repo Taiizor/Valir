@@ -103,28 +103,64 @@ dotnet run -- --redis localhost:6379 --headless
 
 ## Handling Jobs
 
-Jobs are processed by implementing `IJobWorker`:
+Jobs are processed by implementing `IJobHandler<TJob>`:
 
 ```csharp
-public class OrderProcessor : IJobWorker
+public class OrderProcessor : IJobHandler<CreateOrderRequest>
 {
-    public string JobType => "process-order";
-
-    public async Task ExecuteAsync(JobEnvelope job, CancellationToken ct)
+    public async Task HandleAsync(CreateOrderRequest order, JobContext context)
     {
-        var order = JsonSerializer.Deserialize<CreateOrderRequest>(job.Payload);
-        
         // Process the order...
-        await ProcessOrderAsync(order, ct);
+        await ProcessOrderAsync(order, context.CancellationToken);
     }
 }
 ```
 
-Register your workers:
+Register your handlers:
 
 ```csharp
-builder.Services.AddSingleton<IJobWorker, OrderProcessor>();
-builder.Services.AddSingleton<IJobWorker, EmailSender>();
+builder.Services.AddSingleton<IJobHandler<CreateOrderRequest>, OrderProcessor>();
+builder.Services.AddSingleton<IJobHandler<EmailRequest>, EmailSender>();
+```
+
+### JobContext
+
+The `JobContext` provides execution metadata:
+
+```csharp
+public class JobContext
+{
+    public string JobId { get; }              // Unique job identifier
+    public string JobType { get; }            // Job type name
+    public int AttemptNumber { get; }         // Current attempt (0-based)
+    public string? LockOwnerToken { get; }    // Fencing token for external writes
+    public CancellationToken CancellationToken { get; }  // Cancellation token
+}
+```
+
+### Worker Runtime
+
+For standalone worker applications:
+
+```csharp
+// Create runtime with handler function
+var runtime = new WorkerRuntime(
+    queue: queue,
+    handler: async (job, context) =>
+    {
+        // Deserialize and process
+        var request = JsonSerializer.Deserialize<EmailRequest>(job.Payload);
+        await SendEmailAsync(request, context.CancellationToken);
+    },
+    options: options,
+    logger: logger
+);
+
+// Start processing
+await runtime.StartAsync(cancellationToken);
+
+// Graceful shutdown
+await runtime.StopAsync(CancellationToken.None);
 ```
 
 ## Next Steps

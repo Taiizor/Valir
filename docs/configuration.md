@@ -50,14 +50,34 @@ builder.Services.AddValir(options =>
 |----------|------|---------|-------------|
 | `DefaultVisibilityTimeout` | `TimeSpan` | `30s` | Time before abandoned job becomes visible |
 | `ShutdownTimeout` | `TimeSpan` | `30s` | Grace period for drain mode |
-| `JobTimeout` | `TimeSpan` | `5m` | Max execution time per job |
+
+### Heartbeat Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `EnableHeartbeat` | `bool` | `true` | Enable automatic lock extension via heartbeat |
+| `HeartbeatIntervalDivisor` | `int` | `3` | Heartbeat runs every VisibilityTimeout / divisor |
+
+### Health Check Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `AutoRegisterHealthChecks` | `bool` | `false` | Automatically register Valir health checks with DI |
 
 ### Polling Settings
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `PollInterval` | `TimeSpan` | `1s` | Interval between Redis polls |
-| `BatchSize` | `int` | `10` | Jobs to fetch per poll |
+| `PollInterval` | `TimeSpan` | `100ms` | Interval between Redis polls |
+| `MaxPollingInterval` | `TimeSpan` | `5s` | Maximum polling interval during exponential backoff |
+| `PollingBackoffMultiplier` | `double` | `2.0` | Backoff multiplier for empty queue polling |
+| `EnablePollingJitter` | `bool` | `true` | Enable jitter for polling intervals to prevent thundering herd |
+
+### Payload Settings
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `MaxPayloadSizeBytes` | `int` | `10MB` | Maximum payload size in bytes (1KB - 100MB) |
 
 ## Environment Variables
 
