@@ -5,7 +5,7 @@
 <h1 align="center">Valir</h1>
 
 <p align="center">
-  <strong>A modular .NET distributed framework for background jobs and event-driven architectures.</strong>
+  <strong>A modular .NET distributed job queue framework with Redis backend, supporting at-least-once delivery, priority queues, transactional outbox, and event-driven architectures via Kafka/RabbitMQ/Azure Service Bus.</strong>
 </p>
 
 <p align="center">
