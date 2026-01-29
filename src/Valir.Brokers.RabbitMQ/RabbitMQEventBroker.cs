@@ -187,14 +187,20 @@ public sealed class RabbitMQEventBroker(RabbitMQOptions options) : IEventBroker,
         }
 
         string key = $"{topic}:{subscriptionId}";
+        string? consumerTag = null;
 
         lock (_lock)
         {
-            if (_consumerTags.TryGetValue(key, out string? consumerTag))
+            if (_consumerTags.TryGetValue(key, out string? tag))
             {
-                _channel.BasicCancelAsync(consumerTag).GetAwaiter().GetResult();
+                consumerTag = tag;
                 _consumerTags.Remove(key);
             }
+        }
+
+        if (consumerTag is not null)
+        {
+            await _channel.BasicCancelAsync(consumerTag);
         }
     }
 

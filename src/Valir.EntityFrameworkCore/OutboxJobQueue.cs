@@ -38,7 +38,8 @@ public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
         byte[] payload,
         TimeSpan? delay = null,
         int priority = 0,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        CancellationToken ct = default)
     {
         OutboxJob outboxJob = new()
         {
@@ -58,7 +59,8 @@ public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
     /// <inheritdoc />
     public async Task<string[]> EnqueueBatchAsync(
         IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobs,
-        int priority = 0)
+        int priority = 0,
+        CancellationToken ct = default)
     {
         List<OutboxJob> outboxJobs = [.. jobs.Select(j => new OutboxJob
         {
@@ -78,26 +80,26 @@ public class OutboxJobQueue<TContext> : IJobQueue where TContext : DbContext
     // They are not meant to be used with the outbox pattern
 
     /// <inheritdoc />
-    public Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout)
+    public Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout, CancellationToken ct = default)
     {
-        return _innerQueue?.ClaimAsync(workerId, claimTimeout) ?? Task.FromResult<JobEnvelope?>(null);
+        return _innerQueue?.ClaimAsync(workerId, claimTimeout, ct) ?? Task.FromResult<JobEnvelope?>(null);
     }
 
     /// <inheritdoc />
-    public Task CompleteAsync(string jobId)
+    public Task CompleteAsync(string jobId, CancellationToken ct = default)
     {
-        return _innerQueue?.CompleteAsync(jobId) ?? Task.CompletedTask;
+        return _innerQueue?.CompleteAsync(jobId, ct) ?? Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public Task FailAsync(string jobId, string reason)
+    public Task FailAsync(string jobId, string reason, CancellationToken ct = default)
     {
-        return _innerQueue?.FailAsync(jobId, reason) ?? Task.CompletedTask;
+        return _innerQueue?.FailAsync(jobId, reason, ct) ?? Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public Task ReleaseAsync(string jobId, TimeSpan? delay = null)
+    public Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default)
     {
-        return _innerQueue?.ReleaseAsync(jobId, delay) ?? Task.CompletedTask;
+        return _innerQueue?.ReleaseAsync(jobId, delay, ct) ?? Task.CompletedTask;
     }
 }

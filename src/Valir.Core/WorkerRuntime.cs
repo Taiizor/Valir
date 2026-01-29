@@ -97,15 +97,15 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
         {
             try
             {
-                JobEnvelope? job = await _queue.ClaimAsync(WorkerId, _options.DefaultVisibilityTimeout);
+                JobEnvelope? job = await _queue.ClaimAsync(WorkerId, _options.DefaultVisibilityTimeout, ct).ConfigureAwait(false);
 
                 if (job is null)
                 {
-                    await Task.Delay(_options.PollingInterval, ct);
+                    await Task.Delay(_options.PollingInterval, ct).ConfigureAwait(false);
                     continue;
                 }
 
-                await _channel.Writer.WriteAsync(job, ct);
+                await _channel.Writer.WriteAsync(job, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -114,7 +114,7 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
             catch (Exception)
             {
                 // Log error and continue
-                await Task.Delay(_options.PollingInterval, ct);
+                await Task.Delay(_options.PollingInterval, ct).ConfigureAwait(false);
             }
         }
     }
@@ -139,23 +139,23 @@ public sealed class WorkerRuntime : IJobWorker, IAsyncDisposable
 
                 try
                 {
-                    await _handler(job, context);
-                    await _queue.CompleteAsync(job.Id);
+                    await _handler(job, context).ConfigureAwait(false);
+                    await _queue.CompleteAsync(job.Id, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    await _queue.FailAsync(job.Id, ex.Message);
+                    await _queue.FailAsync(job.Id, ex.Message, ct).ConfigureAwait(false);
                 }
                 finally
                 {
                     heartbeatCts.Cancel();
-                    try { await heartbeatTask; } catch { }
+                    try { await heartbeatTask.ConfigureAwait(false); } catch { }
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 // Graceful shutdown: release job back to queue
-                await _queue.ReleaseAsync(job.Id);
+                await _queue.ReleaseAsync(job.Id, null, ct).ConfigureAwait(false);
             }
             finally
             {

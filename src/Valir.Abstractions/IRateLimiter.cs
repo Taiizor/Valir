@@ -13,5 +13,8 @@ public interface IRateLimiter
     /// <param name="max">Maximum allowed operations in the window.</param>
     /// <param name="window">Time window for the limit.</param>
     /// <returns>True if allowed, false if rate limited.</returns>
+    /// <exception cref="ArgumentException">Thrown when key is null or empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when max is negative or zero.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when window is negative or zero.</exception>
     Task<bool> AllowAsync(string key, int max, TimeSpan window);
 }

@@ -119,11 +119,12 @@ public class OutboxProcessor<TContext>(
         }
         catch (Exception ex)
         {
-            // Mark failed attempt
+            // Mark failed attempt - sanitize error message to remove stack traces
+            string sanitizedError = SanitizeErrorMessage(ex.Message);
             foreach (OutboxJob? job in pendingJobs)
             {
                 job.Attempts++;
-                job.LastError = ex.Message.Length > 2000 ? ex.Message[..2000] : ex.Message;
+                job.LastError = sanitizedError.Length > 2000 ? sanitizedError[..2000] : sanitizedError;
             }
 
             await context.SaveChangesAsync(ct);
@@ -151,5 +152,34 @@ public class OutboxProcessor<TContext>(
         {
             logger.LogInformation("Cleaned up {Count} processed outbox jobs", deleted);
         }
+    }
+
+    /// <summary>
+    /// Sanitizes error messages to remove stack traces and sensitive information.
+    /// </summary>
+    /// <param name="errorMessage">The original error message.</param>
+    /// <returns>A sanitized error message safe for storage.</returns>
+    private static string SanitizeErrorMessage(string errorMessage)
+    {
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            return string.Empty;
+        }
+
+        // Find the first line break that typically precedes stack trace
+        int stackTraceStart = errorMessage.IndexOf("\n   at ", StringComparison.Ordinal);
+        if (stackTraceStart > 0)
+        {
+            return errorMessage[..stackTraceStart].Trim();
+        }
+
+        // Also check for Windows-style line endings
+        stackTraceStart = errorMessage.IndexOf("\r\n   at ", StringComparison.Ordinal);
+        if (stackTraceStart > 0)
+        {
+            return errorMessage[..stackTraceStart].Trim();
+        }
+
+        return errorMessage;
     }
 }

@@ -49,8 +49,39 @@ public sealed class RedisJobQueue : IJobQueue
         byte[] payload,
         TimeSpan? delay = null,
         int priority = 0,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        CancellationToken ct = default)
     {
+        // Validate job type parameter
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            throw new ArgumentException("Job type cannot be null or empty.", nameof(type));
+        }
+
+        if (type.Length > 256)
+        {
+            throw new ArgumentException("Job type cannot exceed 256 characters.", nameof(type));
+        }
+
+        // Validate type format (alphanumeric, dots, hyphens, underscores only)
+        foreach (char c in type)
+        {
+            if (!char.IsLetterOrDigit(c) && c != '.' && c != '-' && c != '_')
+            {
+                throw new ArgumentException("Job type can only contain alphanumeric characters, dots, hyphens, and underscores.", nameof(type));
+            }
+        }
+
+        if (payload is null || payload.Length == 0)
+        {
+            throw new ArgumentException("Payload cannot be null or empty.", nameof(payload));
+        }
+
+        if (payload.Length > 10 * 1024 * 1024) // 10 MB limit
+        {
+            throw new ArgumentException("Payload cannot exceed 10 MB.", nameof(payload));
+        }
+
         IDatabase db = _redis.GetDatabase();
         string jobId = Guid.CreateVersion7().ToString("N");
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -73,8 +104,8 @@ public sealed class RedisJobQueue : IJobQueue
             new("idempotencyKey", idempotencyKey ?? "")
         ];
 
-        await db.HashSetAsync(jobKey, hashEntries);
-        await db.SortedSetAddAsync(_waitingKey, jobId, score);
+        await db.HashSetAsync(jobKey, hashEntries).ConfigureAwait(false);
+        await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
 
         return jobId;
     }
@@ -82,7 +113,8 @@ public sealed class RedisJobQueue : IJobQueue
     /// <inheritdoc />
     public async Task<string[]> EnqueueBatchAsync(
         IEnumerable<(string type, byte[] payload, string? idempotencyKey)> jobs,
-        int priority = 0)
+        int priority = 0,
+        CancellationToken ct = default)
     {
         IDatabase db = _redis.GetDatabase();
         IBatch batch = db.CreateBatch();
@@ -114,13 +146,13 @@ public sealed class RedisJobQueue : IJobQueue
         }
 
         batch.Execute();
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         return [.. jobIds];
     }
 
     /// <inheritdoc />
-    public async Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout)
+    public async Task<JobEnvelope?> ClaimAsync(string workerId, TimeSpan claimTimeout, CancellationToken ct = default)
     {
         IDatabase db = _redis.GetDatabase();
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -135,7 +167,7 @@ public sealed class RedisJobQueue : IJobQueue
                 now,
                 (long)claimTimeout.TotalMilliseconds
             ]
-        );
+        ).ConfigureAwait(false);
 
         if (result.IsNull)
         {
@@ -161,12 +193,15 @@ public sealed class RedisJobQueue : IJobQueue
     }
 
     /// <inheritdoc />
-    public async Task CompleteAsync(string jobId)
+    public async Task CompleteAsync(string jobId, CancellationToken ct = default)
     {
         IDatabase db = _redis.GetDatabase();
 
-        // For completion, we need the worker ID but we don't have it here
-        // In a real implementation, we'd track this or pass it through
+        // Get the worker ID from the lock key to verify ownership
+        string lockKey = _lockKeyPrefix + jobId;
+        RedisValue lockOwner = await db.StringGetAsync(lockKey).ConfigureAwait(false);
+        string workerId = lockOwner.IsNull ? "*" : (string)lockOwner!;
+
         await db.ScriptEvaluateAsync(
             _scripts.CompleteJob,
             [_activeKey],
@@ -175,20 +210,25 @@ public sealed class RedisJobQueue : IJobQueue
                 _lockKeyPrefix,
                 _payloadKeyPrefix,
                 jobId,
-                "*" // Allow any owner for now
+                workerId
             ]
-        );
+        ).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task FailAsync(string jobId, string reason)
+    public async Task FailAsync(string jobId, string reason, CancellationToken ct = default)
     {
         IDatabase db = _redis.GetDatabase();
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+        // Get the worker ID from the lock key to verify ownership
+        string lockKey = _lockKeyPrefix + jobId;
+        RedisValue lockOwner = await db.StringGetAsync(lockKey).ConfigureAwait(false);
+        string workerId = lockOwner.IsNull ? "*" : (string)lockOwner!;
+
         // Get current attempts for backoff calculation
         string jobKey = _jobHashPrefix + jobId;
-        int attempts = (int)await db.HashGetAsync(jobKey, "attempts");
+        int attempts = (int)await db.HashGetAsync(jobKey, "attempts").ConfigureAwait(false);
         TimeSpan retryDelay = RetryPolicy.CalculateDelay(attempts, _options.RetryBaseDelay);
 
         await db.ScriptEvaluateAsync(
@@ -198,24 +238,24 @@ public sealed class RedisJobQueue : IJobQueue
                 _jobHashPrefix,
                 _lockKeyPrefix,
                 jobId,
-                "*", // Allow any owner
+                workerId,
                 reason,
                 now,
                 (long)retryDelay.TotalMilliseconds
             ]
-        );
+        ).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task ReleaseAsync(string jobId, TimeSpan? delay = null)
+    public async Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default)
     {
         IDatabase db = _redis.GetDatabase();
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         long score = now + (long)(delay?.TotalMilliseconds ?? 0);
 
         // Simple release: move from active back to waiting
-        await db.SetRemoveAsync(_activeKey, jobId);
-        await db.KeyDeleteAsync(_lockKeyPrefix + jobId);
-        await db.SortedSetAddAsync(_waitingKey, jobId, score);
+        await db.SetRemoveAsync(_activeKey, jobId).ConfigureAwait(false);
+        await db.KeyDeleteAsync(_lockKeyPrefix + jobId).ConfigureAwait(false);
+        await db.SortedSetAddAsync(_waitingKey, jobId, score).ConfigureAwait(false);
     }
 }

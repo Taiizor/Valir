@@ -20,6 +20,7 @@ public interface IDistributedLock : IAsyncDisposable
     /// </summary>
     /// <param name="ttl">Time-to-live for the lock.</param>
     /// <returns>True if lock was acquired, false if already held.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when ttl is negative or zero.</exception>
     Task<bool> AcquireAsync(TimeSpan ttl);
 
     /// <summary>
@@ -27,10 +28,12 @@ public interface IDistributedLock : IAsyncDisposable
     /// </summary>
     /// <param name="ttl">New TTL duration.</param>
     /// <returns>True if extended, false if ownership lost.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when ttl is negative or zero.</exception>
     Task<bool> ExtendAsync(TimeSpan ttl);
 
     /// <summary>
     /// Release the lock (must be current owner).
     /// </summary>
+    /// <returns>A task representing the asynchronous release operation.</returns>
     Task ReleaseAsync();
 }
