@@ -144,14 +144,15 @@ jobs:
 
             - name: Pack NuGet packages
               run: |
-                  dotnet pack src/Valir.Abstractions -c Release -o ./packages
                   dotnet pack src/Valir.Core -c Release -o ./packages
                   dotnet pack src/Valir.Redis -c Release -o ./packages
                   dotnet pack src/Valir.AspNet -c Release -o ./packages
-                  dotnet pack src/Valir.EntityFrameworkCore -c Release -o ./packages
+                  dotnet pack src/Valir.Abstractions -c Release -o ./packages
                   dotnet pack src/Valir.Brokers.Kafka -c Release -o ./packages
-                  dotnet pack src/Valir.Brokers.RabbitMQ -c Release -o ./packages
                   dotnet pack src/Valir.Brokers.AzureSB -c Release -o ./packages
+                  dotnet pack src/Valir.Brokers.RabbitMQ -c Release -o ./packages
+                  dotnet pack src/Valir.Extensions.Serilog -c Release -o ./packages
+                  dotnet pack src/Valir.EntityFrameworkCore -c Release -o ./packages
 
             - name: Upload packages artifact
               uses: actions/upload-artifact@v6

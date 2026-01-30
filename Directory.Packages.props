@@ -49,6 +49,9 @@
         <!-- Swagger -->
         <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.0" />
 
+        <!-- Cron -->
+        <PackageVersion Include="Cronos" Version="0.8.0" />
+
         <!-- Testing -->
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
         <PackageVersion Include="xunit.v3" Version="3.2.2" />
@@ -63,5 +66,9 @@
 
         <!-- Benchmarking -->
         <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+
+        <!-- Serilog -->
+        <PackageVersion Include="Serilog" Version="4.2.0" />
+        <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.1" />
     </ItemGroup>
 </Project>

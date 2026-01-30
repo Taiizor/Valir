@@ -18,6 +18,7 @@
     <Project Path="src/Valir.Brokers.RabbitMQ/Valir.Brokers.RabbitMQ.csproj" />
     <Project Path="src/Valir.Core/Valir.Core.csproj" />
     <Project Path="src/Valir.EntityFrameworkCore/Valir.EntityFrameworkCore.csproj" />
+    <Project Path="src/Valir.Extensions.Serilog/Valir.Extensions.Serilog.csproj" />
     <Project Path="src/Valir.Redis/Valir.Redis.csproj" />
   </Folder>
   <Folder Name="/temp/">
