@@ -7,46 +7,48 @@
         <!-- Microsoft Extensions -->
         <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.2" />
         <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
         <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
-        
+
         <!-- Source Link -->
         <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.102" />
-        
+
         <!-- Redis -->
         <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
-        
+
         <!-- Message Brokers -->
         <PackageVersion Include="Confluent.Kafka" Version="2.13.0" />
         <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
         <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-        
+
         <!-- Database -->
         <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-        
+
         <!-- OpenTelemetry -->
         <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
         <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-        
+
         <!-- Diagnostics -->
         <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="10.0.2" />
-        
+
         <!-- CLI Tools -->
         <PackageVersion Include="Spectre.Console" Version="0.54.1-alpha.0.36" />
         <PackageVersion Include="System.CommandLine" Version="2.0.2" />
-        
+
         <!-- Swagger -->
         <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-        
+
         <!-- Testing -->
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
         <PackageVersion Include="xunit.v3" Version="3.2.2" />
@@ -58,7 +60,7 @@
         <PackageVersion Include="Testcontainers.RabbitMq" Version="4.10.0" />
         <PackageVersion Include="Testcontainers.Kafka" Version="4.10.0" />
         <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
-        
+
         <!-- Benchmarking -->
         <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     </ItemGroup>

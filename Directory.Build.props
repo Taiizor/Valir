@@ -5,8 +5,9 @@
         <VersionSuffix></VersionSuffix>
 
         <!-- Language Features -->
-        <LangVersion>preview</LangVersion>
         <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
+        <AnalysisLevel>preview</AnalysisLevel>
         <ImplicitUsings>enable</ImplicitUsings>
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>

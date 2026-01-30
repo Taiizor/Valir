@@ -20,6 +20,10 @@
     <Project Path="src/Valir.EntityFrameworkCore/Valir.EntityFrameworkCore.csproj" />
     <Project Path="src/Valir.Redis/Valir.Redis.csproj" />
   </Folder>
+  <Folder Name="/temp/">
+    <Project Path="temp/Valir.ConsumerApp/Valir.ConsumerApp.csproj" />
+    <Project Path="temp/Valir.ProducerApp/Valir.ProducerApp.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Valir.Benchmarks/Valir.Benchmarks.csproj" />
     <Project Path="tests/Valir.Tests/Valir.Tests.csproj" />
