@@ -181,13 +181,13 @@ public class RecurringJobDefinitionTests
     }
 
     [Fact]
-    public void Create_WithNullJobId_ThrowsArgumentException()
+    public void Create_WithNullJobId_ThrowsArgumentNullException()
     {
         // Arrange
         byte[] payload = "payload"u8.ToArray();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentNullException>(() =>
             RecurringJobDefinition.Create(null!, "* * * * *", "TestJob", payload));
     }
 
@@ -214,13 +214,13 @@ public class RecurringJobDefinitionTests
     }
 
     [Fact]
-    public void Create_WithNullCronExpression_ThrowsArgumentException()
+    public void Create_WithNullCronExpression_ThrowsArgumentNullException()
     {
         // Arrange
         byte[] payload = "payload"u8.ToArray();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentNullException>(() =>
             RecurringJobDefinition.Create("job-id", null!, "TestJob", payload));
     }
 
@@ -236,13 +236,13 @@ public class RecurringJobDefinitionTests
     }
 
     [Fact]
-    public void Create_WithNullJobType_ThrowsArgumentException()
+    public void Create_WithNullJobType_ThrowsArgumentNullException()
     {
         // Arrange
         byte[] payload = "payload"u8.ToArray();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        Assert.Throws<ArgumentNullException>(() =>
             RecurringJobDefinition.Create("job-id", "* * * * *", null!, payload));
     }
 
