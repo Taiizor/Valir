@@ -72,9 +72,8 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} started (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[1].ToString() == "1")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -88,7 +87,8 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             It.IsAny<LogEventLevel>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -103,7 +103,8 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Debug,
             "Job {JobName} started (Attempt {Attempt})",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Once);
     }
 
@@ -130,7 +131,8 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             It.IsAny<LogEventLevel>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -150,9 +152,9 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed in {DurationMs}ms (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[2].ToString() == "1")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<long>(duration => duration >= 0),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -167,7 +169,9 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             It.IsAny<LogEventLevel>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -183,9 +187,8 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[1].ToString() == "1")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -212,7 +215,9 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Write(
             It.IsAny<LogEventLevel>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -234,9 +239,9 @@ public class ValirSerilogLoggerTests
             LogEventLevel.Error,
             exception,
             "Job {JobName} failed after {DurationMs}ms (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[2].ToString() == "1")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<long>(duration => duration >= 0),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -253,7 +258,9 @@ public class ValirSerilogLoggerTests
             It.IsAny<LogEventLevel>(),
             It.IsAny<Exception>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -270,9 +277,8 @@ public class ValirSerilogLoggerTests
             LogEventLevel.Error,
             exception,
             "Job {JobName} failed (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[1].ToString() == "1")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -302,7 +308,9 @@ public class ValirSerilogLoggerTests
             It.IsAny<LogEventLevel>(),
             It.IsAny<Exception>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -322,9 +330,8 @@ public class ValirSerilogLoggerTests
             LogEventLevel.Warning,
             exception,
             "Job {JobName} will be retried (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[1].ToString() == "2")),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<int>(attempt => attempt == 2)),
             Times.Once);
     }
 
@@ -340,7 +347,8 @@ public class ValirSerilogLoggerTests
             It.IsAny<LogEventLevel>(),
             It.IsAny<Exception>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -370,7 +378,8 @@ public class ValirSerilogLoggerTests
             It.IsAny<LogEventLevel>(),
             It.IsAny<Exception>(),
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Never);
     }
 
@@ -389,9 +398,8 @@ public class ValirSerilogLoggerTests
 
         _serilogMock.Verify(x => x.Debug(
             "Job {JobName} payload: {Payload}",
-            It.Is<object[]>(args =>
-                args[0].ToString() == "TestJob" &&
-                args[1].ToString()!.Contains("Test"))),
+            It.Is<string>(name => name == "TestJob"),
+            It.Is<string>(payload => payload.Contains("Test"))),
             Times.Once);
     }
 
@@ -405,7 +413,8 @@ public class ValirSerilogLoggerTests
 
         _serilogMock.Verify(x => x.Debug(
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<string>()),
             Times.Never);
     }
 
@@ -421,7 +430,8 @@ public class ValirSerilogLoggerTests
 
         _serilogMock.Verify(x => x.Debug(
             It.IsAny<string>(),
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<string>()),
             Times.Never);
     }
 
@@ -437,9 +447,8 @@ public class ValirSerilogLoggerTests
 
         _serilogMock.Verify(x => x.Debug(
             "Job {JobName} payload: {Payload}",
-            It.Is<object[]>(args =>
-                args[1].ToString()!.Contains("... [truncated]") &&
-                args[1].ToString()!.Length <= 25)), // 10 + "... [truncated]"
+            It.IsAny<string>(),
+            It.Is<string>(payload => payload.Contains("... [truncated]") && payload.Length <= 25)), // 10 + "... [truncated]"
             Times.Once);
     }
 
@@ -455,7 +464,7 @@ public class ValirSerilogLoggerTests
         _serilogMock.Verify(x => x.Warning(
             It.IsAny<Exception>(),
             "Failed to serialize job {JobName} payload for logging",
-            It.Is<object[]>(args => args[0].ToString() == "TestJob")),
+            It.Is<string>(name => name == "TestJob")),
             Times.Once);
     }
 
