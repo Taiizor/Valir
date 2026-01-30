@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" alt="Valir Logo" width="128" height="128">
+  <img src="Valir.png" alt="Valir Logo" width="128" height="128">
 </p>
 
 <h1 align="center">Valir</h1>

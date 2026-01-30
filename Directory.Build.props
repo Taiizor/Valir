@@ -21,7 +21,7 @@
         <!-- NuGet Package -->
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/Taiizor/Valir</PackageProjectUrl>
-        <PackageIcon>icon.png</PackageIcon>
+        <PackageIcon>Valir.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/Taiizor/Valir</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -42,7 +42,7 @@
     <!-- Package assets -->
     <ItemGroup>
         <None Include="$(MSBuildThisFileDirectory)NUGET_README.md" Pack="true" PackagePath="README.md" Condition="Exists('$(MSBuildThisFileDirectory)NUGET_README.md')" />
-        <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)icon.png')" />
+        <None Include="$(MSBuildThisFileDirectory)Valir.png" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)Valir.png')" />
     </ItemGroup>
 
     <!-- Source Link -->
