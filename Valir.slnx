@@ -22,6 +22,7 @@
   </Folder>
   <Folder Name="/temp/">
     <Project Path="temp/Valir.ConsumerApp/Valir.ConsumerApp.csproj" />
+    <Project Path="temp/Valir.HybridApp/Valir.HybridApp.csproj" />
     <Project Path="temp/Valir.ProducerApp/Valir.ProducerApp.csproj" />
   </Folder>
   <Folder Name="/tests/">
