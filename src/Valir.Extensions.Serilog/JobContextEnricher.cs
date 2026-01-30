@@ -11,7 +11,7 @@ namespace Valir.Extensions.Serilog;
 /// Initializes a new instance of the <see cref="JobContextEnricher"/> class.
 /// </remarks>
 /// <param name="options">The Serilog options.</param>
-public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnricher
+public sealed class JobContextEnricher(SerilogOptions options) : IJobContextEnricher
 {
     private readonly SerilogOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly AsyncLocal<JobContext?> _currentContext = new();

@@ -15,11 +15,22 @@ namespace Valir.Extensions.Serilog;
 /// <param name="logger">The Serilog logger.</param>
 /// <param name="options">The Serilog options.</param>
 /// <param name="enricher">The job context enricher.</param>
-public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, JobContextEnricher enricher)
+public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, IJobContextEnricher enricher)
 {
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly SerilogOptions _options = options ?? throw new ArgumentNullException(nameof(options));
-    private readonly JobContextEnricher _enricher = enricher ?? throw new ArgumentNullException(nameof(enricher));
+    private readonly IJobContextEnricher _enricher = enricher ?? throw new ArgumentNullException(nameof(enricher));
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ValirSerilogLogger"/> class.
+    /// </summary>
+    /// <param name="logger">The Serilog logger.</param>
+    /// <param name="options">The Serilog options.</param>
+    /// <param name="enricher">The job context enricher.</param>
+    public ValirSerilogLogger(ILogger logger, SerilogOptions options, JobContextEnricher enricher)
+        : this(logger, options, (IJobContextEnricher)enricher)
+    {
+    }
 
     /// <summary>
     /// Logs the start of a job execution.

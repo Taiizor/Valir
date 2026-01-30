@@ -14,7 +14,7 @@ public class LoggingJobHandlerDecoratorTests
 {
     private readonly Mock<IJobHandler<TestJob>> _innerHandlerMock;
     private readonly Mock<ILogger> _serilogMock;
-    private readonly Mock<JobContextEnricher> _enricherMock;
+    private readonly Mock<IJobContextEnricher> _enricherMock;
     private readonly SerilogOptions _options;
     private readonly ValirSerilogLogger _valirLogger;
     private readonly JobContext _jobContext;
@@ -24,7 +24,7 @@ public class LoggingJobHandlerDecoratorTests
         _innerHandlerMock = new Mock<IJobHandler<TestJob>>();
         _serilogMock = new Mock<ILogger>();
         _options = new SerilogOptions();
-        _enricherMock = new Mock<JobContextEnricher>(_options);
+        _enricherMock = new Mock<IJobContextEnricher>();
         _valirLogger = new ValirSerilogLogger(_serilogMock.Object, _options, _enricherMock.Object);
         _jobContext = new JobContext("test-job-id", "worker-1", "lock-token-123", CancellationToken.None);
     }
@@ -91,9 +91,8 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} started (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                args[1].ToString() == "1")),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -116,9 +115,9 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed in {DurationMs}ms (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                args[2].ToString() == "1")),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<long>(duration => duration >= 0),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -170,9 +169,9 @@ public class LoggingJobHandlerDecoratorTests
             LogEventLevel.Error,
             exception,
             "Job {JobName} failed after {DurationMs}ms (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                args[2].ToString() == "1")),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<long>(duration => duration >= 0),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -222,10 +221,9 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed in {DurationMs}ms (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                Convert.ToInt64(args[1]) >= 0 &&
-                args[2].ToString() == "1")),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<long>(duration => duration >= 0),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -249,9 +247,8 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed (Attempt {Attempt})",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                args[1].ToString() == "1")),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<int>(attempt => attempt == 1)),
             Times.Once);
     }
 
@@ -275,7 +272,8 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Information,
             "Job {JobName} completed (Attempt {Attempt})",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Once);
     }
 
@@ -303,7 +301,8 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Debug,
             "Job {JobName} started (Attempt {Attempt})",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<int>()),
             Times.Once);
     }
 
@@ -327,7 +326,9 @@ public class LoggingJobHandlerDecoratorTests
         _serilogMock.Verify(x => x.Write(
             LogEventLevel.Debug,
             "Job {JobName} completed in {DurationMs}ms (Attempt {Attempt})",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Once);
     }
 
@@ -355,7 +356,9 @@ public class LoggingJobHandlerDecoratorTests
             LogEventLevel.Fatal,
             exception,
             "Job {JobName} failed after {DurationMs}ms (Attempt {Attempt})",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<long>(),
+            It.IsAny<int>()),
             Times.Once);
     }
 
@@ -416,9 +419,8 @@ public class LoggingJobHandlerDecoratorTests
         // Assert
         _serilogMock.Verify(x => x.Debug(
             "Job {JobName} payload: {Payload}",
-            It.Is<object[]>(args =>
-                args[0].ToString() == typeof(TestJob).FullName &&
-                args[1].ToString()!.Contains("Test"))),
+            It.Is<string>(name => name == typeof(TestJob).FullName),
+            It.Is<string>(payload => payload.Contains("Test"))),
             Times.Once);
     }
 
@@ -441,7 +443,8 @@ public class LoggingJobHandlerDecoratorTests
         // Assert
         _serilogMock.Verify(x => x.Debug(
             "Job {JobName} payload: {Payload}",
-            It.IsAny<object[]>()),
+            It.IsAny<string>(),
+            It.IsAny<string>()),
             Times.Never);
     }
 

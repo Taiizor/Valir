@@ -38,11 +38,12 @@ public static class ValirSerilogExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton<JobContextEnricher>();
+        services.TryAddSingleton<IJobContextEnricher>(sp => sp.GetRequiredService<JobContextEnricher>());
         services.TryAddSingleton<ValirSerilogLogger>(sp =>
         {
             ILogger logger = Log.Logger;
             SerilogOptions opts = sp.GetRequiredService<SerilogOptions>();
-            JobContextEnricher enricher = sp.GetRequiredService<JobContextEnricher>();
+            IJobContextEnricher enricher = sp.GetRequiredService<IJobContextEnricher>();
             return new ValirSerilogLogger(logger, opts, enricher);
         });
 
@@ -83,10 +84,11 @@ public static class ValirSerilogExtensions
 
         services.TryAddSingleton(options);
         services.TryAddSingleton<JobContextEnricher>();
+        services.TryAddSingleton<IJobContextEnricher>(sp => sp.GetRequiredService<JobContextEnricher>());
         services.TryAddSingleton<ValirSerilogLogger>(sp =>
         {
             SerilogOptions opts = sp.GetRequiredService<SerilogOptions>();
-            JobContextEnricher enricher = sp.GetRequiredService<JobContextEnricher>();
+            IJobContextEnricher enricher = sp.GetRequiredService<IJobContextEnricher>();
             return new ValirSerilogLogger(logger, opts, enricher);
         });
 
