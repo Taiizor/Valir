@@ -87,6 +87,10 @@ public class WorkerRuntimeTests
 
         // Wait for job to be processed
         Task completed = await Task.WhenAny(jobProcessed.Task, Task.Delay(TimeSpan.FromSeconds(3), cts.Token));
+        await WaitForConditionAsync(
+            () => _fakeQueue.CompletedJobs.Contains("test-job-1"),
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert
         Assert.True(jobProcessed.Task.IsCompletedSuccessfully);
@@ -268,6 +272,17 @@ public class WorkerRuntimeTests
             CreatedAt: DateTimeOffset.UtcNow,
             VisibilityTimeout: TimeSpan.FromSeconds(30)
         );
+    }
+
+    private static async Task WaitForConditionAsync(Func<bool> condition, TimeSpan timeout, CancellationToken ct)
+    {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+
+        while (!condition())
+        {
+            await Task.Delay(20, timeoutCts.Token);
+        }
     }
 }
 
