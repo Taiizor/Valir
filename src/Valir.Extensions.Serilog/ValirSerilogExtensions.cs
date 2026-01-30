@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Serilog;
-using Serilog.Core;
 using Valir.Abstractions;
 
 namespace Valir.Extensions.Serilog;
@@ -46,10 +45,6 @@ public static class ValirSerilogExtensions
             JobContextEnricher enricher = sp.GetRequiredService<JobContextEnricher>();
             return new ValirSerilogLogger(logger, opts, enricher);
         });
-
-        // Register the enricher with Serilog if not already configured
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<ILogEventEnricher>(
-            sp => sp.GetRequiredService<JobContextEnricher>()));
 
         return services;
     }

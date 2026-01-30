@@ -21,7 +21,7 @@ public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnrich
     /// <summary>
     /// Gets or sets the current job context for the async local scope.
     /// </summary>
-    internal JobContext? CurrentContext
+    public JobContext? CurrentContext
     {
         get => _currentContext.Value;
         set => _currentContext.Value = value;
@@ -30,7 +30,7 @@ public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnrich
     /// <summary>
     /// Gets or sets the current job name for the async local scope.
     /// </summary>
-    internal string? CurrentJobName
+    public string? CurrentJobName
     {
         get => _currentJobName.Value;
         set => _currentJobName.Value = value;
@@ -39,7 +39,7 @@ public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnrich
     /// <summary>
     /// Gets or sets the current attempt number for the async local scope.
     /// </summary>
-    internal int CurrentAttempt
+    public int CurrentAttempt
     {
         get => _currentAttempt.Value;
         set => _currentAttempt.Value = value;
@@ -84,7 +84,7 @@ public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnrich
     /// <param name="context">The job context.</param>
     /// <param name="jobName">The job name/type.</param>
     /// <param name="attempt">The attempt number.</param>
-    internal void SetContext(JobContext context, string jobName, int attempt)
+    public void SetContext(JobContext context, string jobName, int attempt)
     {
         _currentContext.Value = context;
         _currentJobName.Value = jobName;
@@ -94,7 +94,7 @@ public sealed class JobContextEnricher(SerilogOptions options) : ILogEventEnrich
     /// <summary>
     /// Clears the job context for the current async scope.
     /// </summary>
-    internal void ClearContext()
+    public void ClearContext()
     {
         _currentContext.Value = null;
         _currentJobName.Value = null;

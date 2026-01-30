@@ -70,5 +70,8 @@
         <!-- Serilog -->
         <PackageVersion Include="Serilog" Version="4.3.1-dev-02406" />
         <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
+
+        <!-- Mocking -->
+        <PackageVersion Include="Moq" Version="4.20.72" />
     </ItemGroup>
 </Project>

@@ -43,6 +43,11 @@
         <ProjectReference Include="..\..\src\Valir.EntityFrameworkCore\Valir.EntityFrameworkCore.csproj" />
         <ProjectReference Include="..\..\src\Valir.Brokers.Kafka\Valir.Brokers.Kafka.csproj" />
         <ProjectReference Include="..\..\src\Valir.Brokers.RabbitMQ\Valir.Brokers.RabbitMQ.csproj" />
+        <ProjectReference Include="..\..\src\Valir.Extensions.Serilog\Valir.Extensions.Serilog.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Moq" />
     </ItemGroup>
 
 </Project>

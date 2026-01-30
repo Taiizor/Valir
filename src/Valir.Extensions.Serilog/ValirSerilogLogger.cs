@@ -27,7 +27,7 @@ public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, J
     /// <param name="jobName">The job name/type.</param>
     /// <param name="context">The job context.</param>
     /// <param name="attempt">The attempt number.</param>
-    internal void LogJobStart(string jobName, JobContext context, int attempt)
+    public void LogJobStart(string jobName, JobContext context, int attempt)
     {
         if (!ShouldLogJobType(jobName))
         {
@@ -52,7 +52,7 @@ public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, J
     /// <param name="context">The job context.</param>
     /// <param name="attempt">The attempt number.</param>
     /// <param name="stopwatch">The stopwatch measuring execution time.</param>
-    internal void LogJobComplete(string jobName, JobContext context, int attempt, Stopwatch stopwatch)
+    public void LogJobComplete(string jobName, JobContext context, int attempt, Stopwatch stopwatch)
     {
         if (!ShouldLogJobType(jobName))
         {
@@ -91,7 +91,7 @@ public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, J
     /// <param name="attempt">The attempt number.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="stopwatch">The stopwatch measuring execution time.</param>
-    internal void LogJobFailure(string jobName, JobContext context, int attempt, Exception exception, Stopwatch? stopwatch)
+    public void LogJobFailure(string jobName, JobContext context, int attempt, Exception exception, Stopwatch? stopwatch)
     {
         if (!ShouldLogJobType(jobName))
         {
@@ -131,7 +131,7 @@ public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, J
     /// <param name="context">The job context.</param>
     /// <param name="attempt">The attempt number.</param>
     /// <param name="exception">The exception that caused the retry.</param>
-    internal void LogJobRetry(string jobName, JobContext context, int attempt, Exception exception)
+    public void LogJobRetry(string jobName, JobContext context, int attempt, Exception exception)
     {
         if (!ShouldLogJobType(jobName))
         {
@@ -157,7 +157,7 @@ public sealed class ValirSerilogLogger(ILogger logger, SerilogOptions options, J
     /// <param name="jobName">The job name/type.</param>
     /// <param name="context">The job context.</param>
     /// <param name="job">The job payload.</param>
-    internal void LogJobPayload<TJob>(string jobName, JobContext context, TJob job) where TJob : notnull
+    public void LogJobPayload<TJob>(string jobName, JobContext context, TJob job) where TJob : notnull
     {
         if (!_options.LogJobPayload || !ShouldLogJobType(jobName))
         {
