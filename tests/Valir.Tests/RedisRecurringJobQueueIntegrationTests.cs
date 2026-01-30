@@ -75,8 +75,16 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
         byte[] payload = "test-payload"u8.ToArray();
 
         // Act & Assert
-        Exception ex = await Assert.ThrowsAsync<Exception>(() =>
-            _queue.ScheduleAsync(jobId, invalidCron, jobType, payload, ct: TestContext.Current.CancellationToken));
+        if (string.IsNullOrWhiteSpace(invalidCron))
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _queue.ScheduleAsync(jobId, invalidCron, jobType, payload, ct: TestContext.Current.CancellationToken));
+        }
+        else
+        {
+            await Assert.ThrowsAsync<Cronos.CronFormatException>(() =>
+                _queue.ScheduleAsync(jobId, invalidCron, jobType, payload, ct: TestContext.Current.CancellationToken));
+        }
     }
 
     [Fact]
@@ -120,13 +128,26 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
         string? jobId, string? cronExpression, string? jobType, byte[]? payload)
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            _queue.ScheduleAsync(
-                jobId!,
-                cronExpression!,
-                jobType!,
-                payload!,
-                ct: TestContext.Current.CancellationToken));
+        if (jobId is null || cronExpression is null || jobType is null || payload is null)
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                _queue.ScheduleAsync(
+                    jobId!,
+                    cronExpression!,
+                    jobType!,
+                    payload!,
+                    ct: TestContext.Current.CancellationToken));
+        }
+        else
+        {
+            await Assert.ThrowsAsync<ArgumentException>(() =>
+                _queue.ScheduleAsync(
+                    jobId,
+                    cronExpression,
+                    jobType,
+                    payload,
+                    ct: TestContext.Current.CancellationToken));
+        }
     }
 
     #endregion

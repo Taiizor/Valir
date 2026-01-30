@@ -106,7 +106,15 @@ public sealed class RedisRecurringJobQueue : IRecurringJobQueue
             throw new InvalidOperationException($"Could not calculate next occurrence for cron expression: {cronExpression}");
         }
 
-        DateTimeOffset nextExecution = new(nextOccurrence.Value, timeZone.GetUtcOffset(nextOccurrence.Value));
+        DateTime nextOccurrenceValue = nextOccurrence.Value;
+        DateTime nextUtc = nextOccurrenceValue.Kind switch
+        {
+            DateTimeKind.Utc => nextOccurrenceValue,
+            DateTimeKind.Local => nextOccurrenceValue.ToUniversalTime(),
+            _ => TimeZoneInfo.ConvertTimeToUtc(nextOccurrenceValue, timeZone)
+        };
+
+        DateTimeOffset nextExecution = new(nextUtc, TimeSpan.Zero);
         long nowMs = now.ToUnixTimeMilliseconds();
         long nextExecutionMs = nextExecution.ToUnixTimeMilliseconds();
 
@@ -504,6 +512,9 @@ public sealed class RedisRecurringJobQueue : IRecurringJobQueue
         local jobsSetKey = KEYS[2]
         local scheduleKey = KEYS[3]
 
+        local existingCreatedAt = redis.call('HGET', jobHashKey, 'createdAt')
+        local createdAt = existingCreatedAt or ARGV[9]
+
         redis.call('HMSET', jobHashKey,
             'cronExpression', ARGV[2],
             'timeZoneId', ARGV[3],
@@ -512,7 +523,7 @@ public sealed class RedisRecurringJobQueue : IRecurringJobQueue
             'queue', ARGV[6],
             'priority', ARGV[7],
             'cronFormat', ARGV[8],
-            'createdAt', ARGV[9],
+            'createdAt', createdAt,
             'updatedAt', ARGV[9],
             'nextExecution', ARGV[10],
             'misfirePolicy', ARGV[11],
