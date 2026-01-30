@@ -1,6 +1,6 @@
-using System.Threading.Channels;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using System.Threading.Channels;
 using Valir.Abstractions;
 using Valir.Core;
 
@@ -71,7 +71,7 @@ public class SchedulerWorkerTests
     public void Constructor_WithValidParameters_CreatesInstance()
     {
         // Act
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
@@ -89,13 +89,13 @@ public class SchedulerWorkerTests
     public async Task StartAsync_WhenNotRunning_StartsSuccessfully()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -112,13 +112,13 @@ public class SchedulerWorkerTests
     public async Task StartAsync_WhenAlreadyRunning_DoesNotThrow()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await worker.StartAsync(cts.Token);
 
         // Act - Start again (should not throw)
@@ -136,13 +136,13 @@ public class SchedulerWorkerTests
     public async Task StopAsync_WhenRunning_StopsSuccessfully()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await worker.StartAsync(cts.Token);
 
         // Act
@@ -159,7 +159,7 @@ public class SchedulerWorkerTests
     public async Task StopAsync_WhenNotRunning_DoesNotThrow()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
@@ -183,16 +183,16 @@ public class SchedulerWorkerTests
     public async Task StartAsync_ProcessesDueJobs()
     {
         // Arrange
-        var dueJob = CreateRecurringJobClaimResult("due-job-1", DateTimeOffset.UtcNow.AddMinutes(-5));
+        RecurringJobClaimResult dueJob = CreateRecurringJobClaimResult("due-job-1", DateTimeOffset.UtcNow.AddMinutes(-5));
         _fakeRecurringQueue.AddDueJob(dueJob);
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -212,19 +212,19 @@ public class SchedulerWorkerTests
     public async Task StartAsync_WithMisfirePolicySkip_DoesNotEnqueueJob()
     {
         // Arrange
-        var misfiredJob = CreateRecurringJobClaimResult(
+        RecurringJobClaimResult misfiredJob = CreateRecurringJobClaimResult(
             "misfired-skip-job",
             DateTimeOffset.UtcNow.AddHours(-2),
             MisfirePolicy.Skip);
         _fakeRecurringQueue.AddDueJob(misfiredJob);
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -242,19 +242,19 @@ public class SchedulerWorkerTests
     public async Task StartAsync_WithMisfirePolicyFireOnce_EnqueuesSingleInstance()
     {
         // Arrange
-        var misfiredJob = CreateRecurringJobClaimResult(
+        RecurringJobClaimResult misfiredJob = CreateRecurringJobClaimResult(
             "misfired-fireonce-job",
             DateTimeOffset.UtcNow.AddHours(-2),
             MisfirePolicy.FireOnce);
         _fakeRecurringQueue.AddDueJob(misfiredJob);
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -272,19 +272,19 @@ public class SchedulerWorkerTests
     public async Task StartAsync_WithMisfirePolicyFireNow_EnqueuesWithCurrentTime()
     {
         // Arrange
-        var misfiredJob = CreateRecurringJobClaimResult(
+        RecurringJobClaimResult misfiredJob = CreateRecurringJobClaimResult(
             "misfired-firenow-job",
             DateTimeOffset.UtcNow.AddHours(-2),
             MisfirePolicy.FireNow);
         _fakeRecurringQueue.AddDueJob(misfiredJob);
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -302,16 +302,16 @@ public class SchedulerWorkerTests
     public async Task StartAsync_UpdatesNextExecutionTime()
     {
         // Arrange
-        var dueJob = CreateRecurringJobClaimResult("update-next-job", DateTimeOffset.UtcNow.AddMinutes(-5));
+        RecurringJobClaimResult dueJob = CreateRecurringJobClaimResult("update-next-job", DateTimeOffset.UtcNow.AddMinutes(-5));
         _fakeRecurringQueue.AddDueJob(dueJob);
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -333,13 +333,13 @@ public class SchedulerWorkerTests
     public async Task StopAsync_GracefullyStopsProcessing()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await worker.StartAsync(cts.Token);
 
         // Wait for a few processing cycles
@@ -359,13 +359,13 @@ public class SchedulerWorkerTests
     public async Task DisposeAsync_CleansUpResources()
     {
         // Arrange
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
         await worker.StartAsync(cts.Token);
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
@@ -387,17 +387,17 @@ public class SchedulerWorkerTests
         const int jobCount = 5;
         for (int i = 0; i < jobCount; i++)
         {
-            var job = CreateRecurringJobClaimResult($"batch-job-{i}", DateTimeOffset.UtcNow.AddMinutes(-i - 1));
+            RecurringJobClaimResult job = CreateRecurringJobClaimResult($"batch-job-{i}", DateTimeOffset.UtcNow.AddMinutes(-i - 1));
             _fakeRecurringQueue.AddDueJob(job);
         }
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             _optionsWrapper,
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -415,7 +415,7 @@ public class SchedulerWorkerTests
     public async Task StartAsync_RespectsBatchSize()
     {
         // Arrange
-        var smallBatchOptions = new SchedulerWorkerOptions
+        SchedulerWorkerOptions smallBatchOptions = new()
         {
             CheckInterval = TimeSpan.FromMilliseconds(100),
             BatchSize = 2
@@ -424,17 +424,17 @@ public class SchedulerWorkerTests
         // Add more jobs than batch size
         for (int i = 0; i < 5; i++)
         {
-            var job = CreateRecurringJobClaimResult($"limited-batch-job-{i}", DateTimeOffset.UtcNow.AddMinutes(-i - 1));
+            RecurringJobClaimResult job = CreateRecurringJobClaimResult($"limited-batch-job-{i}", DateTimeOffset.UtcNow.AddMinutes(-i - 1));
             _fakeRecurringQueue.AddDueJob(job);
         }
 
-        var worker = new SchedulerWorker(
+        SchedulerWorker worker = new(
             _fakeRecurringQueue,
             _fakeJobQueue,
             Options.Create(smallBatchOptions),
             NullLogger<SchedulerWorker>.Instance);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
 
         // Act
         await worker.StartAsync(cts.Token);
@@ -496,8 +496,8 @@ internal sealed class FakeRecurringJobQueue : IRecurringJobQueue
         int batchSize = 10,
         CancellationToken ct = default)
     {
-        var jobs = _dueJobs.Take(batchSize).ToArray();
-        foreach (var job in jobs)
+        RecurringJobClaimResult[] jobs = _dueJobs.Take(batchSize).ToArray();
+        foreach (RecurringJobClaimResult? job in jobs)
         {
             _dueJobs.Remove(job);
         }
@@ -520,13 +520,35 @@ internal sealed class FakeRecurringJobQueue : IRecurringJobQueue
         string jobType,
         byte[] payload,
         RecurringJobOptions? options = null,
-        CancellationToken ct = default) => Task.CompletedTask;
+        CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
 
-    public Task RemoveAsync(string jobId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task DisableAsync(string jobId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task EnableAsync(string jobId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<RecurringJobInfo[]> GetAllAsync(CancellationToken ct = default) => Task.FromResult(Array.Empty<RecurringJobInfo>());
-    public Task<RecurringJobInfo?> GetAsync(string jobId, CancellationToken ct = default) => Task.FromResult<RecurringJobInfo?>(null);
+    public Task RemoveAsync(string jobId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task DisableAsync(string jobId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task EnableAsync(string jobId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<RecurringJobInfo[]> GetAllAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult(Array.Empty<RecurringJobInfo>());
+    }
+
+    public Task<RecurringJobInfo?> GetAsync(string jobId, CancellationToken ct = default)
+    {
+        return Task.FromResult<RecurringJobInfo?>(null);
+    }
 }
 
 /// <summary>
@@ -563,8 +585,8 @@ internal sealed class SchedulerWorkerFakeJobQueue : IJobQueue
         int priority = 0,
         CancellationToken ct = default)
     {
-        var jobIds = jobs.Select(_ => Guid.CreateVersion7().ToString("N")).ToArray();
-        foreach (var id in jobIds)
+        string[] jobIds = jobs.Select(_ => Guid.CreateVersion7().ToString("N")).ToArray();
+        foreach (string? id in jobIds)
         {
             _enqueuedRecurringJobs.Add(id);
         }
@@ -580,8 +602,23 @@ internal sealed class SchedulerWorkerFakeJobQueue : IJobQueue
         return Task.FromResult<JobEnvelope?>(null);
     }
 
-    public Task CompleteAsync(string jobId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task FailAsync(string jobId, string reason, CancellationToken ct = default) => Task.CompletedTask;
-    public Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default) => Task.FromResult(true);
+    public Task CompleteAsync(string jobId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task FailAsync(string jobId, string reason, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task ReleaseAsync(string jobId, TimeSpan? delay = null, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> ExtendLockAsync(string jobId, string workerId, TimeSpan extension, CancellationToken ct = default)
+    {
+        return Task.FromResult(true);
+    }
 }

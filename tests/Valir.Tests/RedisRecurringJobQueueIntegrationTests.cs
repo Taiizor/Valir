@@ -23,7 +23,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
     {
         await _redisContainer.StartAsync();
         _redis = await ConnectionMultiplexer.ConnectAsync(_redisContainer.GetConnectionString());
-        var options = new ValirOptions
+        ValirOptions options = new()
         {
             RedisConnectionString = _redisContainer.GetConnectionString(),
             DefaultVisibilityTimeout = TimeSpan.FromSeconds(30)
@@ -143,7 +143,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
         byte[] payload = "test-payload"u8.ToArray();
 
         // Schedule job with past execution time by using a custom options
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             TimeZone = TimeZoneInfo.Utc
         };
@@ -251,7 +251,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
             TestContext.Current.CancellationToken);
 
         // Act - Simulate 10 workers claiming simultaneously
-        var tasks = new List<Task<RecurringJobClaimResult[]>>();
+        List<Task<RecurringJobClaimResult[]>> tasks = [];
         for (int i = 0; i < 10; i++)
         {
             string workerId = $"worker-{i}";
@@ -373,7 +373,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
     {
         // Arrange
         string jobId = $"test-misfire-{policy}";
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             MisfirePolicy = policy
         };
@@ -437,7 +437,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
         // Arrange
         string jobId = $"test-tz-{timeZoneId.Replace(" ", "-")}";
         TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             TimeZone = timeZone
         };
@@ -503,7 +503,7 @@ public class RedisRecurringJobQueueIntegrationTests : IAsyncLifetime
     {
         // Arrange
         string jobId = "test-seconds-cron";
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             CronFormat = CronFormat.IncludeSeconds
         };

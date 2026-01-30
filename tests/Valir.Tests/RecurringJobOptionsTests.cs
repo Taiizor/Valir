@@ -14,7 +14,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_HaveCorrectDefaultValues()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal(CronFormat.Standard, options.CronFormat);
@@ -29,7 +29,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_CronFormat_IsStandard()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal(CronFormat.Standard, options.CronFormat);
@@ -39,7 +39,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_TimeZone_IsNull()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Null(options.TimeZone);
@@ -49,7 +49,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_Queue_IsDefault()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal("default", options.Queue);
@@ -59,7 +59,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_Priority_IsZero()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal(0, options.Priority);
@@ -69,7 +69,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_MisfirePolicy_IsFireOnce()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal(MisfirePolicy.FireOnce, options.MisfirePolicy);
@@ -79,7 +79,7 @@ public class RecurringJobOptionsTests
     public void DefaultOptions_MaxRetries_IsThree()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
 
         // Assert
         Assert.Equal(3, options.MaxRetries);
@@ -93,7 +93,7 @@ public class RecurringJobOptionsTests
     public void CronFormat_CanBeSetToIncludeSeconds()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             CronFormat = CronFormat.IncludeSeconds
@@ -107,7 +107,7 @@ public class RecurringJobOptionsTests
     public void TimeZone_CanBeSet()
     {
         // Arrange
-        var options = new RecurringJobOptions();
+        RecurringJobOptions options = new();
         TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
 
         // Act
@@ -121,7 +121,7 @@ public class RecurringJobOptionsTests
     public void TimeZone_CanBeSetToNull()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             TimeZone = TimeZoneInfo.Utc
         };
@@ -137,7 +137,7 @@ public class RecurringJobOptionsTests
     public void Queue_CanBeSet()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Queue = "custom-queue"
@@ -151,7 +151,7 @@ public class RecurringJobOptionsTests
     public void Queue_CanBeSetToEmptyString()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Queue = ""
@@ -165,7 +165,7 @@ public class RecurringJobOptionsTests
     public void Priority_CanBeSetToPositiveValue()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Priority = 10
@@ -179,7 +179,7 @@ public class RecurringJobOptionsTests
     public void Priority_CanBeSetToNegativeValue()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Priority = -5
@@ -193,7 +193,7 @@ public class RecurringJobOptionsTests
     public void MisfirePolicy_CanBeSetToSkip()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MisfirePolicy = MisfirePolicy.Skip
@@ -207,7 +207,7 @@ public class RecurringJobOptionsTests
     public void MisfirePolicy_CanBeSetToFireAll()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MisfirePolicy = MisfirePolicy.FireAll
@@ -221,7 +221,7 @@ public class RecurringJobOptionsTests
     public void MisfirePolicy_CanBeSetToFireNow()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MisfirePolicy = MisfirePolicy.FireNow
@@ -235,7 +235,7 @@ public class RecurringJobOptionsTests
     public void MaxRetries_CanBeSetToZero()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MaxRetries = 0
@@ -249,7 +249,7 @@ public class RecurringJobOptionsTests
     public void MaxRetries_CanBeSetToHigherValue()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MaxRetries = 10
@@ -268,7 +268,7 @@ public class RecurringJobOptionsTests
     {
         // Arrange & Act
         TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             CronFormat = CronFormat.IncludeSeconds,
             TimeZone = timeZone,
@@ -291,7 +291,7 @@ public class RecurringJobOptionsTests
     public void Options_CanBePartiallyInitialized()
     {
         // Arrange & Act
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             Queue = "custom-queue",
             MaxRetries = 1
@@ -314,13 +314,13 @@ public class RecurringJobOptionsTests
     public void MultipleOptions_InstancesAreIndependent()
     {
         // Arrange
-        var options1 = new RecurringJobOptions
+        RecurringJobOptions options1 = new()
         {
             Queue = "queue-1",
             Priority = 5
         };
 
-        var options2 = new RecurringJobOptions
+        RecurringJobOptions options2 = new()
         {
             Queue = "queue-2",
             Priority = 10
@@ -337,8 +337,8 @@ public class RecurringJobOptionsTests
     public void ModifyingOneInstance_DoesNotAffectOther()
     {
         // Arrange
-        var options1 = new RecurringJobOptions();
-        var options2 = new RecurringJobOptions();
+        RecurringJobOptions options1 = new();
+        RecurringJobOptions options2 = new();
 
         // Act
         options1.Queue = "modified-queue";
@@ -359,7 +359,7 @@ public class RecurringJobOptionsTests
     public void Queue_CanContainSpecialCharacters()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Queue = "queue-with-special.chars_123"
@@ -373,7 +373,7 @@ public class RecurringJobOptionsTests
     public void Priority_CanBeSetToMaxInt()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Priority = int.MaxValue
@@ -387,7 +387,7 @@ public class RecurringJobOptionsTests
     public void Priority_CanBeSetToMinInt()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             Priority = int.MinValue
@@ -401,7 +401,7 @@ public class RecurringJobOptionsTests
     public void MaxRetries_CanBeSetToMaxInt()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act
             MaxRetries = int.MaxValue
@@ -415,7 +415,7 @@ public class RecurringJobOptionsTests
     public void CronFormat_CanBeToggledMultipleTimes()
     {
         // Arrange
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             // Act & Assert
             CronFormat = CronFormat.IncludeSeconds

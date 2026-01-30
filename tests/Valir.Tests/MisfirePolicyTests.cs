@@ -14,7 +14,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_HasSkipValue()
     {
         // Arrange & Act
-        var policy = MisfirePolicy.Skip;
+        MisfirePolicy policy = MisfirePolicy.Skip;
 
         // Assert
         Assert.Equal(0, (int)policy);
@@ -24,7 +24,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_HasFireAllValue()
     {
         // Arrange & Act
-        var policy = MisfirePolicy.FireAll;
+        MisfirePolicy policy = MisfirePolicy.FireAll;
 
         // Assert
         Assert.Equal(1, (int)policy);
@@ -34,7 +34,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_HasFireOnceValue()
     {
         // Arrange & Act
-        var policy = MisfirePolicy.FireOnce;
+        MisfirePolicy policy = MisfirePolicy.FireOnce;
 
         // Assert
         Assert.Equal(2, (int)policy);
@@ -44,7 +44,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_HasFireNowValue()
     {
         // Arrange & Act
-        var policy = MisfirePolicy.FireNow;
+        MisfirePolicy policy = MisfirePolicy.FireNow;
 
         // Assert
         Assert.Equal(3, (int)policy);
@@ -58,7 +58,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_HasFourValues()
     {
         // Arrange & Act
-        var values = Enum.GetValues<MisfirePolicy>();
+        MisfirePolicy[] values = Enum.GetValues<MisfirePolicy>();
 
         // Assert
         Assert.Equal(4, values.Length);
@@ -76,7 +76,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_CanBeParsedFromString(string name, MisfirePolicy expected)
     {
         // Act
-        var parsed = Enum.Parse<MisfirePolicy>(name);
+        MisfirePolicy parsed = Enum.Parse<MisfirePolicy>(name);
 
         // Assert
         Assert.Equal(expected, parsed);
@@ -90,7 +90,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_CanBeConvertedFromInt(int value, MisfirePolicy expected)
     {
         // Act
-        var policy = (MisfirePolicy)value;
+        MisfirePolicy policy = (MisfirePolicy)value;
 
         // Assert
         Assert.Equal(expected, policy);
@@ -129,8 +129,8 @@ public class MisfirePolicyTests
     public void MisfirePolicy_SameValues_AreEqual()
     {
         // Arrange
-        var policy1 = MisfirePolicy.FireOnce;
-        var policy2 = MisfirePolicy.FireOnce;
+        MisfirePolicy policy1 = MisfirePolicy.FireOnce;
+        MisfirePolicy policy2 = MisfirePolicy.FireOnce;
 
         // Assert
         Assert.Equal(policy1, policy2);
@@ -140,7 +140,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_CanBeUsedInSwitchStatement()
     {
         // Arrange
-        var policy = MisfirePolicy.FireOnce;
+        MisfirePolicy policy = MisfirePolicy.FireOnce;
         string result = policy switch
         {
             MisfirePolicy.Skip => "skip",
@@ -158,7 +158,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_CanBeUsedInSwitchExpression()
     {
         // Arrange
-        var policy = MisfirePolicy.Skip;
+        MisfirePolicy policy = MisfirePolicy.Skip;
 
         // Act
         string result = policy switch
@@ -182,16 +182,16 @@ public class MisfirePolicyTests
     public void MisfirePolicy_AllValues_CanBeIterated()
     {
         // Arrange
-        var expectedValues = new[]
-        {
+        MisfirePolicy[] expectedValues =
+        [
             MisfirePolicy.Skip,
             MisfirePolicy.FireAll,
             MisfirePolicy.FireOnce,
             MisfirePolicy.FireNow
-        };
+        ];
 
         // Act
-        var actualValues = Enum.GetValues<MisfirePolicy>();
+        MisfirePolicy[] actualValues = Enum.GetValues<MisfirePolicy>();
 
         // Assert
         Assert.Equal(expectedValues, actualValues);
@@ -201,7 +201,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_AllValues_HaveSequentialIntValues()
     {
         // Arrange
-        var values = Enum.GetValues<MisfirePolicy>();
+        MisfirePolicy[] values = Enum.GetValues<MisfirePolicy>();
 
         // Assert
         for (int i = 0; i < values.Length; i++)
@@ -248,7 +248,7 @@ public class MisfirePolicyTests
         MisfirePolicy expectedValue)
     {
         // Act
-        bool success = Enum.TryParse<MisfirePolicy>(input, out var result);
+        bool success = Enum.TryParse<MisfirePolicy>(input, out MisfirePolicy result);
 
         // Assert
         Assert.Equal(expectedSuccess, success);
@@ -266,7 +266,7 @@ public class MisfirePolicyTests
     public void MisfirePolicy_IsValueType()
     {
         // Arrange
-        var policy = MisfirePolicy.FireOnce;
+        MisfirePolicy policy = MisfirePolicy.FireOnce;
 
         // Assert
         Assert.True(policy is ValueType);

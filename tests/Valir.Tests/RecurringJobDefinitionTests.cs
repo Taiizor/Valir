@@ -17,7 +17,7 @@ public class RecurringJobDefinitionTests
         DateTimeOffset now = DateTimeOffset.UtcNow;
         byte[] payload = "test-payload"u8.ToArray();
 
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -58,7 +58,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_NullTimeZoneId_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -76,7 +76,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_NullNextExecution_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -94,7 +94,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_NullLastExecution_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -153,7 +153,7 @@ public class RecurringJobDefinitionTests
         string cronExpression = "0 */6 * * *";
         string jobType = "TestJob";
         byte[] payload = "test-payload"u8.ToArray();
-        var options = new RecurringJobOptions
+        RecurringJobOptions options = new()
         {
             Queue = "custom-queue",
             Priority = 10,
@@ -294,7 +294,7 @@ public class RecurringJobDefinitionTests
     {
         // Arrange
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "original-job",
             CronExpression = "* * * * *",
@@ -322,7 +322,7 @@ public class RecurringJobDefinitionTests
         DateTimeOffset now = DateTimeOffset.UtcNow;
         byte[] payload = "payload"u8.ToArray();
 
-        var definition1 = new RecurringJobDefinition
+        RecurringJobDefinition definition1 = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -333,7 +333,7 @@ public class RecurringJobDefinitionTests
             UpdatedAt = now
         };
 
-        var definition2 = new RecurringJobDefinition
+        RecurringJobDefinition definition2 = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -355,7 +355,7 @@ public class RecurringJobDefinitionTests
         // Arrange
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
-        var definition1 = new RecurringJobDefinition
+        RecurringJobDefinition definition1 = new()
         {
             JobId = "job-1",
             CronExpression = "* * * * *",
@@ -366,7 +366,7 @@ public class RecurringJobDefinitionTests
             UpdatedAt = now
         };
 
-        var definition2 = new RecurringJobDefinition
+        RecurringJobDefinition definition2 = new()
         {
             JobId = "job-2",
             CronExpression = "* * * * *",
@@ -390,7 +390,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_EmptyPayload_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -407,7 +407,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_NegativePriority_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
@@ -425,7 +425,7 @@ public class RecurringJobDefinitionTests
     public void RecurringJobDefinition_ZeroMaxRetries_Allowed()
     {
         // Arrange & Act
-        var definition = new RecurringJobDefinition
+        RecurringJobDefinition definition = new()
         {
             JobId = "test-job",
             CronExpression = "* * * * *",
