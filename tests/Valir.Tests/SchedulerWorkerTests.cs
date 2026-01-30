@@ -197,11 +197,13 @@ public class SchedulerWorkerTests
         // Act
         await worker.StartAsync(cts.Token);
 
-        // Wait for job to be processed
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeJobQueue.EnqueuedRecurringJobs.Count >= 1,
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert
-        Assert.Contains(dueJob.JobId, _fakeJobQueue.EnqueuedRecurringJobs);
+        Assert.Single(_fakeJobQueue.EnqueuedRecurringJobs);
 
         // Cleanup
         await worker.StopAsync(CancellationToken.None);
@@ -228,10 +230,13 @@ public class SchedulerWorkerTests
 
         // Act
         await worker.StartAsync(cts.Token);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeRecurringQueue.UpdatedNextExecutionJobs.Contains(misfiredJob.JobId),
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert - Job with Skip policy should not be enqueued
-        Assert.DoesNotContain(misfiredJob.JobId, _fakeJobQueue.EnqueuedRecurringJobs);
+        Assert.Empty(_fakeJobQueue.EnqueuedRecurringJobs);
 
         // Cleanup
         await worker.StopAsync(CancellationToken.None);
@@ -258,10 +263,13 @@ public class SchedulerWorkerTests
 
         // Act
         await worker.StartAsync(cts.Token);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeJobQueue.EnqueuedRecurringJobs.Count >= 1,
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert - Job should be enqueued once
-        Assert.Single(_fakeJobQueue.EnqueuedRecurringJobs, j => j == misfiredJob.JobId);
+        Assert.Single(_fakeJobQueue.EnqueuedRecurringJobs);
 
         // Cleanup
         await worker.StopAsync(CancellationToken.None);
@@ -288,10 +296,13 @@ public class SchedulerWorkerTests
 
         // Act
         await worker.StartAsync(cts.Token);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeJobQueue.EnqueuedRecurringJobs.Count >= 1,
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert - Job should be enqueued
-        Assert.Contains(misfiredJob.JobId, _fakeJobQueue.EnqueuedRecurringJobs);
+        Assert.Single(_fakeJobQueue.EnqueuedRecurringJobs);
 
         // Cleanup
         await worker.StopAsync(CancellationToken.None);
@@ -315,7 +326,10 @@ public class SchedulerWorkerTests
 
         // Act
         await worker.StartAsync(cts.Token);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeRecurringQueue.UpdatedNextExecutionJobs.Contains(dueJob.JobId),
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert
         Assert.Contains(dueJob.JobId, _fakeRecurringQueue.UpdatedNextExecutionJobs);
@@ -401,7 +415,10 @@ public class SchedulerWorkerTests
 
         // Act
         await worker.StartAsync(cts.Token);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await WaitForConditionAsync(
+            () => _fakeJobQueue.EnqueuedRecurringJobs.Count == jobCount,
+            TimeSpan.FromSeconds(3),
+            cts.Token);
 
         // Assert
         Assert.Equal(jobCount, _fakeJobQueue.EnqueuedRecurringJobs.Count);
@@ -473,6 +490,17 @@ public class SchedulerWorkerTests
         );
     }
 
+    private static async Task WaitForConditionAsync(Func<bool> condition, TimeSpan timeout, CancellationToken ct)
+    {
+        using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+
+        while (!condition())
+        {
+            await Task.Delay(20, timeoutCts.Token);
+        }
+    }
+
     #endregion
 }
 
@@ -496,7 +524,7 @@ internal sealed class FakeRecurringJobQueue : IRecurringJobQueue
         int batchSize = 10,
         CancellationToken ct = default)
     {
-        RecurringJobClaimResult[] jobs = _dueJobs.Take(batchSize).ToArray();
+        RecurringJobClaimResult[] jobs = [.. _dueJobs.Take(batchSize)];
         foreach (RecurringJobClaimResult? job in jobs)
         {
             _dueJobs.Remove(job);
@@ -585,7 +613,7 @@ internal sealed class SchedulerWorkerFakeJobQueue : IJobQueue
         int priority = 0,
         CancellationToken ct = default)
     {
-        string[] jobIds = jobs.Select(_ => Guid.CreateVersion7().ToString("N")).ToArray();
+        string[] jobIds = [.. jobs.Select(_ => Guid.CreateVersion7().ToString("N"))];
         foreach (string? id in jobIds)
         {
             _enqueuedRecurringJobs.Add(id);
