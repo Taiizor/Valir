@@ -94,13 +94,13 @@ jobs:
             - uses: actions/checkout@v6
 
             - name: Download unit test coverage
-              uses: actions/download-artifact@v6
+              uses: actions/download-artifact@v7
               with:
                   name: coverage-unit-tests
                   path: ./coverage/unit
 
             - name: Download integration test coverage
-              uses: actions/download-artifact@v6
+              uses: actions/download-artifact@v7
               with:
                   name: coverage-integration-tests
                   path: ./coverage/integration
