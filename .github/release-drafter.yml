@@ -72,6 +72,9 @@ autolabeler:
     - label: "brokers"
       files:
           - "src/Valir.Brokers.*/**"
+    - label: "extensions"
+      files:
+          - "src/Valir.Extensions.*/**"
     - label: "aspnet"
       files:
           - "src/Valir.AspNet/**"
@@ -123,6 +126,9 @@ template: |
     dotnet add package Valir.Abstractions --version $RESOLVED_VERSION
     dotnet add package Valir.Core --version $RESOLVED_VERSION
     dotnet add package Valir.Redis --version $RESOLVED_VERSION
+
+    # Extensions
+    dotnet add package Valir.Extensions.Serilog --version $RESOLVED_VERSION
 
     # ASP.NET Core
     dotnet add package Valir.AspNet --version $RESOLVED_VERSION

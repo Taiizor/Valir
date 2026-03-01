@@ -16,6 +16,11 @@ brokers:
           - any-glob-to-any-file:
                 - src/Valir.Brokers.*/**
 
+extensions:
+    - changed-files:
+          - any-glob-to-any-file:
+                - src/Valir.Extensions.*/**
+
 aspnet:
     - changed-files:
           - any-glob-to-any-file:

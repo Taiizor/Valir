@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Valir.Abstractions;
 using Valir.Core;
@@ -31,9 +32,11 @@ public static class ValirServiceCollectionExtensions
             ApplyValirRedisDefaults(configOptions);
             return ConnectionMultiplexer.Connect(configOptions);
         });
+
         services.AddSingleton<IJobQueue, RedisJobQueue>();
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();
         services.AddSingleton<IValirMetrics, ValirMetricsAdapter>();
+        services.AddSingleton<IRecurringJobQueue, RedisRecurringJobQueue>();
 
         if (options.AutoRegisterHealthChecks)
         {
@@ -72,6 +75,28 @@ public static class ValirServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Add Valir recurring jobs support and register the SchedulerWorker.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">Optional configuration for the scheduler worker.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddRecurringJobs(
+        this IServiceCollection services,
+        Action<SchedulerWorkerOptions>? configureOptions = null)
+    {
+        services.AddSingleton<IRecurringJobQueue, RedisRecurringJobQueue>();
+
+        services.Configure<SchedulerWorkerOptions>(options =>
+        {
+            configureOptions?.Invoke(options);
+        });
+
+        services.AddSingleton<IHostedService, SchedulerWorker>();
+
+        return services;
+    }
+
+    /// <summary>
     /// Add Valir job queue only (for producer applications).
     /// </summary>
     /// <param name="services">The service collection.</param>
@@ -93,6 +118,7 @@ public static class ValirServiceCollectionExtensions
             return ConnectionMultiplexer.Connect(configOptions);
         });
         services.AddSingleton<IJobQueue, RedisJobQueue>();
+        services.AddSingleton<IRecurringJobQueue, RedisRecurringJobQueue>();
 
         return services;
     }
@@ -121,6 +147,7 @@ public static class ValirServiceCollectionExtensions
             return ConnectionMultiplexer.Connect(configOptions);
         });
         services.AddSingleton<IJobQueue, RedisJobQueue>();
+        services.AddSingleton<IRecurringJobQueue, RedisRecurringJobQueue>();
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();
 
         return services;

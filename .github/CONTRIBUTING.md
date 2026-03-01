@@ -65,21 +65,22 @@ dotnet test
 
 ```
 src/
-├── Valir.Abstractions/     # Core interfaces
-├── Valir.Core/             # Worker runtime
-├── Valir.Redis/            # Redis implementation
-├── Valir.AspNet/           # ASP.NET integration
-├── Valir.EntityFrameworkCore/ # Outbox pattern
-├── Valir.Brokers.Kafka/    # Kafka adapter
-├── Valir.Brokers.RabbitMQ/ # RabbitMQ adapter
-├── Valir.Brokers.AzureSB/  # Azure SB adapter
-└── Valir.Worker/           # CLI worker host
+├── Valir.Abstractions/          # Core interfaces (IJobQueue, IRecurringJobQueue, IJobHandler, etc.)
+├── Valir.Core/                  # Worker runtime and core implementations (SchedulerWorker, MisfirePolicy)
+├── Valir.Redis/                 # Redis implementation with Lua scripts for recurring jobs
+├── Valir.AspNet/                # ASP.NET integration and DI extensions
+├── Valir.EntityFrameworkCore/   # EF Core integration with Outbox pattern
+├── Valir.Brokers.Kafka/         # Kafka event broker adapter
+├── Valir.Brokers.RabbitMQ/      # RabbitMQ event broker adapter
+├── Valir.Brokers.AzureSB/       # Azure Service Bus event broker adapter
+└── Valir.Extensions.Serilog/    # Serilog logging integration for job context enrichment
 
 samples/
-└── Valir.Sample.WebApi/    # Example usage
+├── Valir.Sample.WebApi/         # ASP.NET Web API example
+└── Valir.Sample.Worker/         # Background worker service example
 
 tests/
-└── Valir.Tests/            # Unit & integration tests
+└── Valir.Tests/                 # Unit & integration tests
 ```
 
 ## Testing
