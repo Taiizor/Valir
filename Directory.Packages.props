@@ -25,7 +25,7 @@
         <PackageVersion Include="StackExchange.Redis" Version="2.10.1" />
 
         <!-- Message Brokers -->
-        <PackageVersion Include="Confluent.Kafka" Version="2.13.0" />
+        <PackageVersion Include="Confluent.Kafka" Version="2.13.1" />
         <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
         <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
 
